@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import DashboardLayout from "../components/templates/DashboardLayout";
 import { 
   BiPlus, 
@@ -10,58 +11,114 @@ import { FormKelasModal, ImportExcelModal, ConfirmModal } from "../components/or
 
 const KelolaKelasPage = () => {
   const [activeModal, setActiveModal] = useState(null);
-
-  const handleSaveAdd = () => setActiveModal('confirm-add');
-  const handleSaveEdit = () => setActiveModal('confirm-edit');
-  const handleDelete = () => setActiveModal('confirm-delete');
   
-  const handleClose = () => setActiveModal(null);
-  const handleFinalAction = () => {
-    setActiveModal(null);
-    alert("Aksi Berhasil Dilakukan! (Mockup)");
+  const [kelasData, setKelasData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedKelas, setSelectedKelas] = useState(null);
+  const [tempFormData, setTempFormData] = useState(null);
+
+  const fetchKelas = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`http://127.0.0.1:8000/api/academic/kelas/?search=${searchTerm}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setKelasData(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Gagal ambil data kelas:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => { fetchKelas(); }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
+  const handleRequestConfirm = (formData) => {
+    setTempFormData(formData);
+    setActiveModal(activeModal === 'add' ? 'confirm-add' : 'confirm-edit');
+  };
+
+  const handleFinalAction = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const isEdit = activeModal === 'confirm-edit';
+      const url = isEdit 
+        ? `http://127.0.0.1:8000/api/academic/kelas/${tempFormData.id}/` 
+        : "http://127.0.0.1:8000/api/academic/kelas/";
+      const method = isEdit ? "patch" : "post";
+
+      await axios[method](url, tempFormData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setActiveModal(null);
+      setTempFormData(null);
+      fetchKelas();
+      alert(isEdit ? "Data Kelas berhasil diubah!" : "Kelas baru berhasil ditambahkan!");
+    } catch (err) {
+      const errorMsg = err.response?.data ? Object.values(err.response.data).flat().join(", ") : "Gagal memproses data.";
+      alert(errorMsg);
+    }
+  };
+
+  const handleOpenDelete = (row) => {
+    setSelectedKelas(row);
+    setActiveModal('confirm-delete');
+  };
+
+  const handleFinalDelete = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://127.0.0.1:8000/api/academic/kelas/${selectedKelas.id}/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setActiveModal(null);
+      fetchKelas();
+    } catch (err) {
+      alert("Gagal menghapus data kelas.");
+    }
   };
 
   const headers = ["#", "Kelas", "Musyif", "Target Hafalan", "Aksi"];
   
-  const rowData = [
-    {
-      id: 1, kelas: "1 A", musyif: "Ustadz Ali", target: "5 Surah"
-    },
-    {}, {}, {}, {}, {}, {}, {}, {}, {} 
-  ];
-
+  // LOGIKA BARU: Render tabel dinamis sesuai jumlah data (tanpa baris kosong)
   const renderTableBody = () => {
-    return rowData.map((row, idx) => (
-      <tr key={idx} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
-        {row.id ? (
-          <>
-            <td className="border border-black px-3 py-2.5 text-center h-[45px] whitespace-nowrap">{row.id}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.kelas}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.musyif}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.target}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">
-              
-              <div className="flex gap-2 justify-center items-center">
-                <button 
-                  onClick={() => setActiveModal('edit')}
-                  className="bg-[#2ECC71] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#27ae60] transition-all"
-                >
-                  <BiPencil className="text-[1rem]" /> Edit
-                </button>
+    if (kelasData.length === 0) {
+      return (
+        <tr>
+          <td colSpan={headers.length} className="text-center p-8 text-slate-500 italic bg-[#f9f9f9]">
+            Belum ada data kelas yang tersedia.
+          </td>
+        </tr>
+      );
+    }
 
-                <button 
-                  onClick={handleDelete}
-                  className="bg-[#E74C3C] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#c0392b] transition-all"
-                >
-                  <BiTrash className="text-[1rem]" /> Hapus
-                </button>
-              </div>
-
-            </td>
-          </>
-        ) : (
-          headers.map((_, cIdx) => <td key={cIdx} className="border border-black px-2 py-2 h-[45px]">&nbsp;</td>)
-        )}
+    return kelasData.map((row, idx) => (
+      <tr key={row.id} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
+        <td className="border border-black px-3 py-2.5 text-center h-[45px] whitespace-nowrap font-medium text-slate-700">{idx + 1}</td>
+        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap font-bold">{row.nama_kelas}</td>
+        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.nama_musyif || "-"}</td>
+        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.target_hafalan || "-"}</td>
+        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">
+          <div className="flex gap-2 justify-center items-center">
+            <button 
+              onClick={() => { setSelectedKelas(row); setActiveModal('edit'); }}
+              className="bg-[#2ECC71] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#27ae60] transition-all"
+            >
+              <BiPencil className="text-[1rem]" /> Edit
+            </button>
+            <button 
+              onClick={() => handleOpenDelete(row)}
+              className="bg-[#E74C3C] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#c0392b] transition-all"
+            >
+              <BiTrash className="text-[1rem]" /> Hapus
+            </button>
+          </div>
+        </td>
       </tr>
     ));
   };
@@ -69,17 +126,43 @@ const KelolaKelasPage = () => {
   return (
     <DashboardLayout title="Kelola Kelas">
       
-      {activeModal === 'add' && <FormKelasModal mode="add" onClose={handleClose} onSave={handleSaveAdd} />}
-      {activeModal === 'edit' && <FormKelasModal mode="edit" onClose={handleClose} onSave={handleSaveEdit} />}
-      {activeModal === 'import' && <ImportExcelModal onClose={handleClose} />}
+      {(activeModal === 'add' || activeModal === 'edit') && (
+        <FormKelasModal 
+          mode={activeModal} 
+          dataKelas={selectedKelas} 
+          onClose={() => setActiveModal(null)} 
+          onSave={handleRequestConfirm} 
+        />
+      )}
       
-      {activeModal === 'confirm-add' && <ConfirmModal type="add" onClose={() => setActiveModal('add')} onConfirm={handleFinalAction} />}
-      {activeModal === 'confirm-edit' && <ConfirmModal type="edit" onClose={() => setActiveModal('edit')} onConfirm={handleFinalAction} />}
-      {activeModal === 'confirm-delete' && <ConfirmModal type="delete" onClose={handleClose} onConfirm={handleFinalAction} />}
+      {activeModal === 'import' && (
+        <ImportExcelModal 
+          onClose={() => setActiveModal(null)} 
+          onSuccess={() => { setActiveModal(null); fetchKelas(); }}
+        />
+      )}
+      
+      {(activeModal === 'confirm-add' || activeModal === 'confirm-edit') && (
+        <ConfirmModal 
+          type={activeModal === 'confirm-add' ? 'add' : 'edit'} 
+          dataKelas={tempFormData} 
+          onClose={() => setActiveModal(activeModal === 'confirm-add' ? 'add' : 'edit')} 
+          onConfirm={handleFinalAction} 
+        />
+      )}
+      
+      {activeModal === 'confirm-delete' && (
+        <ConfirmModal 
+          type="delete" 
+          dataKelas={selectedKelas} 
+          onClose={() => setActiveModal(null)} 
+          onConfirm={handleFinalDelete} 
+        />
+      )}
 
       <div className="flex flex-row gap-3 mb-6">
         <button 
-          onClick={() => setActiveModal('add')} 
+          onClick={() => { setSelectedKelas(null); setActiveModal('add'); }} 
           className="bg-[#5294A9] text-white rounded-[4px] px-3 py-2.5 font-[600] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm w-1/2 sm:w-auto text-[0.85rem] sm:text-base whitespace-nowrap"
         >
           <BiPlus className="text-xl shrink-0" /> Tambah Kelas
@@ -106,32 +189,33 @@ const KelolaKelasPage = () => {
             <span className="mr-2 hidden sm:inline">Search:</span>
             <input 
                 type="text" 
-                placeholder="Search..."
+                placeholder="Cari Kelas / Musyif..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[200px] bg-white border border-gray-300 rounded px-3 py-1.5 outline-none font-normal focus:border-[#2ECC71] transition-all text-sm" 
             />
           </div>
         </div>
 
         <div className="border border-black rounded-[4px] overflow-x-auto bg-white mb-4 custom-scrollbar">
-          {/* PERBAIKAN DISINI: min-w-[800px] DIGANTI min-w-max */}
           <table className="w-full border-collapse min-w-max">
             <thead>
               <tr className="bg-white">
                 {headers.map((h, i) => (
-                  <th key={i} className="border border-black px-3 py-3 text-center font-[700] text-black text-[0.9rem] bg-white whitespace-nowrap">
+                  <th key={i} className="border border-black px-3 py-3 text-center font-[700] text-black text-[0.9rem] bg-white whitespace-nowrap uppercase tracking-wider">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {renderTableBody()}
+              {loading ? <tr><td colSpan={5} className="text-center p-10 font-bold text-slate-400">Memuat data kelas...</td></tr> : renderTableBody()}
             </tbody>
           </table>
         </div>
 
         <div className="flex flex-row justify-between items-center text-[0.8rem] sm:text-[0.85rem] font-[600] mt-2">
-          <div className="text-slate-600">Showing 1 to 10</div>
+          <div className="text-slate-600">Showing {kelasData.length} entries</div>
           <div className="flex border border-gray-300 rounded-[4px] overflow-hidden shadow-sm scale-90 sm:scale-100 origin-right">
             <button className="px-2 sm:px-3 py-1 bg-white hover:bg-gray-50 border-r border-gray-300 transition-colors text-slate-600 disabled:opacity-50">Prev</button>
             <button className="px-2 sm:px-3 py-1 bg-[#007BFF] text-white border-r border-gray-300 font-bold">1</button>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { 
   BiSave, 
   BiTrash, 
@@ -178,21 +179,13 @@ const QURAN_DATA = [
   { name: "An-Nas", juz: "30", total: 6 },
 ];
 
-// --- KOMPONEN INPUT ---
-const ModalInput = ({ label, type = "text", value, options, readOnly, placeholder, onChange, ...props }) => {
-  const baseClass = "w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-2.5 font-[500] h-[45px] outline-none text-slate-800 placeholder-slate-500 transition-all focus:ring-2 focus:ring-[#5294A9]/50";
-  
+const ModalInput = ({ label, type = "text", value, options, readOnly, placeholder, onChange, disabled, ...props }) => {
+  const baseClass = `w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-2.5 font-[500] h-[45px] outline-none text-slate-800 placeholder-slate-500 transition-all focus:ring-2 focus:ring-[#5294A9]/50 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`;
   return (
     <div className="w-full">
       {label && <label className="block font-[700] text-[#1a1a1a] mb-2 text-[0.95rem]">{label}</label>}
-      
       {type === "select" ? (
-        <select 
-          className={baseClass} 
-          value={value} 
-          onChange={onChange}
-          {...props}
-        >
+        <select className={baseClass} value={value} onChange={onChange} disabled={disabled} {...props}>
           {options?.map((opt, idx) => {
             const optValue = typeof opt === 'object' ? opt.value : opt;
             const optLabel = typeof opt === 'object' ? opt.label : opt;
@@ -200,158 +193,211 @@ const ModalInput = ({ label, type = "text", value, options, readOnly, placeholde
           })}
         </select>
       ) : (
-        <input 
-          type={type} 
-          className={baseClass}
-          value={value}
-          onChange={onChange}
-          readOnly={readOnly}
-          placeholder={placeholder}
-          {...props}
-        />
+        <input type={type} className={baseClass} value={value} onChange={onChange} readOnly={readOnly} placeholder={placeholder} disabled={disabled} {...props} />
       )}
     </div>
   );
 };
 
-// --- MODAL WRAPPER ---
 const ModalWrapper = ({ title, icon: Icon, onClose, children, size = "max-w-lg" }) => (
   <div className="fixed inset-0 bg-black/50 z-[1070] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
     <div className={`bg-white rounded-[15px] w-full ${size} shadow-lg flex flex-col max-h-[95vh] animate-[zoomIn_0.3s_ease-out]`}>
       <div className="border-b border-black px-6 py-4 flex justify-between items-center shrink-0">
-        <h5 className="font-[700] text-[1.2rem] flex items-center gap-2 text-slate-800">
-          {Icon && <Icon className="text-xl" />} {title}
-        </h5>
+        <h5 className="font-[700] text-[1.2rem] flex items-center gap-2 text-slate-800">{Icon && <Icon className="text-xl" />} {title}</h5>
         <button onClick={onClose} className="text-3xl hover:text-red-500 transition-colors leading-none">&times;</button>
       </div>
-      <div className="p-6 overflow-y-auto custom-scrollbar">
-        {children}
-      </div>
+      <div className="p-6 overflow-y-auto custom-scrollbar">{children}</div>
     </div>
   </div>
 );
 
-// --- 1. MODAL TAMBAH / EDIT HAFALAN (LOGIC BARU) ---
-export const FormHafalanModal = ({ mode = "add", onClose, onSave }) => {
-  // State untuk form control
-  const [selectedJuz, setSelectedJuz] = useState(mode === "edit" ? "30" : "");
-  const [selectedSurah, setSelectedSurah] = useState(mode === "edit" ? "An-Naba" : "");
-  const [ayat, setAyat] = useState(mode === "edit" ? "1-40" : "");
+// --- 1. MODAL TAMBAH / EDIT HAFALAN ---
+export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan }) => {
+  const initialForm = {
+    selected_kelas: "", 
+    siswa: "", 
+    musyif: "", 
+    tanggal: new Date().toISOString().split('T')[0], 
+    juz: "", 
+    surah: "", 
+    ayat: "", 
+    jenis_setoran: "", 
+    nilai: "", 
+    catatan: ""
+  };
+  
+  const [form, setForm] = useState(initialForm);
+  const [kelasList, setKelasList] = useState([]);
+  const [siswaList, setSiswaList] = useState([]);
+  const [musyifList, setMusyifList] = useState([]);
   const [filteredSurahs, setFilteredSurahs] = useState([]);
 
-  // Generate Options Juz 1-30 secara otomatis
-  const juzOptions = [
-    { label: "-- Pilih Juz --", value: "" },
-    ...Array.from({ length: 30 }, (_, i) => ({ label: `Juz ${i + 1}`, value: `${i + 1}` }))
-  ];
-
-  // Logic 1: Filter Surah saat Juz berubah
   useEffect(() => {
-    if (selectedJuz) {
-      // Filter data berdasarkan Juz yang dipilih
-      const filtered = QURAN_DATA.filter(item => item.juz === selectedJuz);
+    const fetchInitialData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        // Load data kelas saja di awal
+        const resKelas = await axios.get("http://127.0.0.1:8000/api/academic/kelas/", { headers });
+
+        setKelasList([
+          { value: "", label: "-- Pilih Kelas --" },
+          ...resKelas.data.map(k => ({ value: k.nama_kelas, label: k.nama_kelas }))
+        ]);
+
+      } catch (err) { console.error("Gagal load data awal", err); }
+    };
+    fetchInitialData();
+
+    if (mode === "edit" && dataHafalan) {
+      setForm({
+        ...dataHafalan,
+        // Pastikan key 'siswa' dan 'musyif' sesuai dengan serializer baru
+        siswa: dataHafalan.siswa_id || dataHafalan.siswa || "",
+        musyif: dataHafalan.musyif_id || dataHafalan.musyif || "",
+        selected_kelas: dataHafalan.nama_kelas || "" 
+      });
+      // Load data filter sesuai kelas yang diedit
+      if (dataHafalan.nama_kelas) {
+        fetchByKelas(dataHafalan.nama_kelas);
+      }
+    }
+  }, [mode, dataHafalan]);
+
+  // LOGIKA UTAMA: Filter Siswa DAN Musyif berdasarkan Kelas
+  const fetchByKelas = async (namaKelas) => {
+    if (!namaKelas) {
+        setSiswaList([]);
+        setMusyifList([]);
+        return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      // Hit endpoint dengan query param ?kelas=
+      const [resSiswa, resMusyif] = await Promise.all([
+        axios.get(`http://127.0.0.1:8000/api/siswa/?kelas=${namaKelas}`, { headers }),
+        axios.get(`http://127.0.0.1:8000/api/musyif/?kelas=${namaKelas}`, { headers })
+      ]);
+      
+      setSiswaList([
+        { value: "", label: "-- Pilih Siswa --" },
+        ...resSiswa.data.map(s => ({ value: s.id, label: `${s.first_name} ${s.last_name}` }))
+      ]);
+
+      setMusyifList([
+        { value: "", label: "-- Pilih Musyif --" },
+        ...resMusyif.data.map(m => ({ value: m.id, label: `${m.first_name} ${m.last_name}` }))
+      ]);
+
+    } catch (err) { console.error("Gagal load data filter kelas", err); }
+  };
+
+  const juzOptions = [{ label: "-- Pilih Juz --", value: "" }, ...Array.from({ length: 30 }, (_, i) => ({ label: `Juz ${i + 1}`, value: `${i + 1}` }))];
+
+  useEffect(() => {
+    if (form.juz) {
+      const filtered = QURAN_DATA.filter(item => item.juz === form.juz);
       setFilteredSurahs(filtered);
     } else {
       setFilteredSurahs([]);
     }
-  }, [selectedJuz]);
+  }, [form.juz]);
 
-  // Handler Ganti Juz
-  const handleJuzChange = (e) => {
-    const val = e.target.value;
-    setSelectedJuz(val);
-    setSelectedSurah(""); // Reset Surah saat ganti Juz
-    setAyat(""); // Reset Ayat saat ganti Juz
-  };
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
 
-  // Handler Ganti Surah (Logic 2 & 3: Auto-fill Ayat)
-  const handleSurahChange = (e) => {
-    const val = e.target.value;
-    setSelectedSurah(val);
-    
-    // Cari data surah untuk dapatkan total ayat
-    // Kita cari berdasarkan Nama Surah DAN Juz yang sedang aktif (untuk handle surah yang ada di banyak juz)
-    const surahInfo = QURAN_DATA.find(s => s.name === val && s.juz === selectedJuz);
-    
-    if (surahInfo) {
-      setAyat(`1-${surahInfo.total}`); // Auto fill format: 1-Total
-    } else {
-      setAyat("");
+    // LOGIKA: Trigger filter saat kelas dipilih
+    if (name === "selected_kelas") {
+      setForm(prev => ({ ...prev, selected_kelas: value, siswa: "", musyif: "" }));
+      fetchByKelas(value);
+    }
+
+    if (name === "surah") {
+      const surahInfo = QURAN_DATA.find(s => s.name === value && s.juz === form.juz);
+      if (surahInfo) setForm(prev => ({ ...prev, surah: value, ayat: `1-${surahInfo.total}` }));
+    }
+    if (name === "juz") {
+        setForm(prev => ({ ...prev, juz: value, surah: "", ayat: "" }));
     }
   };
 
+  const handleSaveClick = () => {
+    const s = siswaList.find(i => String(i.value) === String(form.siswa));
+    const m = musyifList.find(i => String(i.value) === String(form.musyif));
+    
+    // Hapus temporary UI field sebelum simpan
+    const { selected_kelas, ...cleanForm } = form;
+
+    onSave({
+        ...cleanForm,
+        _displaySiswa: s ? s.label : "-",
+        _displayMusyif: m ? m.label : "-"
+    });
+  };
+
   return (
-    <ModalWrapper 
-      title={mode === "add" ? "Tambah Hafalan" : "Edit Hafalan"} 
-      icon={mode === "add" ? BiPlus : BiPencil} 
-      onClose={onClose}
-      size="max-w-3xl"
-    >
+    <ModalWrapper title={mode === "add" ? "Tambah Hafalan" : "Edit Hafalan"} icon={mode === "add" ? BiPlus : BiPencil} onClose={onClose} size="max-w-3xl">
       <div className="space-y-4">
-        <ModalInput label="Nama Siswa" type="select" options={["-- Pilih Siswa --", "Rizal Ahmad M", "Budi"]} value={mode === "edit" ? "Rizal Ahmad M" : ""} onChange={() => {}} />
-        
+        {/* LOGIKA: Dropdown Kelas untuk Filter */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ModalInput label="Tanggal" type="date" value="2026-01-09" onChange={() => {}} />
-            <ModalInput label="Musyif" type="select" options={["-- Pilih Musyif --", "Ustadz Ali"]} value={mode === "edit" ? "Ustadz Ali" : ""} onChange={() => {}} />
+            <ModalInput label="1. Pilih Kelas Dulu" name="selected_kelas" type="select" options={kelasList} value={form.selected_kelas} onChange={handleChange} />
+            
+            <ModalInput 
+                label="2. Nama Siswa" 
+                name="siswa" 
+                type="select" 
+                options={form.selected_kelas ? siswaList : [{value:"", label:"-- Pilih Kelas Dulu --"}]} 
+                value={form.siswa} 
+                onChange={handleChange} 
+                disabled={!form.selected_kelas} 
+            />
         </div>
         
-        {/* LOGIC UTAMA: JUZ & SURAH */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
-          {/* 1. Pilih Juz Dulu */}
-          <ModalInput 
-            label="Pilih Juz" 
-            type="select" 
-            options={juzOptions} 
-            value={selectedJuz} 
-            onChange={handleJuzChange} 
-          />
-
-          {/* 2. Surah Terfilter otomatis */}
+            <ModalInput label="Tanggal" name="tanggal" type="date" value={form.tanggal} onChange={handleChange} />
+            
+            {/* LOGIKA: Musyif Pengampu Terfilter */}
+            <ModalInput 
+                label="3. Musyif Pengampu" 
+                name="musyif" 
+                type="select" 
+                options={form.selected_kelas ? musyifList : [{value:"", label:"-- Pilih Kelas Dulu --"}]} 
+                value={form.musyif} 
+                onChange={handleChange} 
+                disabled={!form.selected_kelas} 
+            />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ModalInput label="Pilih Juz" name="juz" type="select" options={juzOptions} value={form.juz} onChange={handleChange} />
           <div>
             <label className="block font-[700] text-[#1a1a1a] mb-2 text-[0.95rem]">Surah</label>
-            <select 
-              className="w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-2.5 font-[500] h-[45px] outline-none text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              value={selectedSurah}
-              onChange={handleSurahChange}
-              disabled={!selectedJuz} // Disabled kalau Juz belum dipilih
-            >
-              <option value="">{selectedJuz ? "-- Pilih Surah --" : "-- Pilih Juz Terlebih Dahulu --"}</option>
-              {filteredSurahs.map((surah, idx) => (
-                <option key={idx} value={surah.name}>{surah.name}</option>
-              ))}
+            <select name="surah" className="w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-2.5 font-[500] h-[45px] outline-none text-slate-800 disabled:opacity-50" value={form.surah} onChange={handleChange} disabled={!form.juz}>
+              <option value="">{form.juz ? "-- Pilih Surah --" : "-- Pilih Juz Dulu --"}</option>
+              {filteredSurahs.map((s, idx) => <option key={idx} value={s.name}>{s.name}</option>)}
             </select>
           </div>
-
         </div>
 
-        {/* LOGIC 3: Ayat Auto Fill tapi Editable */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <ModalInput 
-              label="Ayat" 
-              placeholder="Contoh: 1-10" 
-              value={ayat} 
-              onChange={(e) => setAyat(e.target.value)} // Bisa diedit manual
-            />
-            
-            <ModalInput label="Jenis Setoran" type="select" options={["-- Pilih Jenis --", "Ziyadah (Hafalan Baru)", "Murajaah (Mengulang)"]} onChange={() => {}} />
-            <ModalInput label="Nilai" type="select" options={["-- Pilih Nilai --", "A", "B", "C", "D"]} onChange={() => {}} />
+            <ModalInput label="Ayat" name="ayat" placeholder="Contoh: 1-10" value={form.ayat} onChange={handleChange} />
+            <ModalInput label="Jenis Setoran" name="jenis_setoran" type="select" options={[{value:"", label:"-- Pilih Jenis --"}, {value:"Ziyadah", label:"Ziyadah(Hafalan Baru)"}, {value:"Murajaah", label:"Murajaah(Mengulang"}]} value={form.jenis_setoran} onChange={handleChange} />
+            <ModalInput label="Nilai" name="nilai" type="select" options={[{value:"", label:"-- Pilih Nilai --"}, {value:"A", label:"A - Sangat Baik"}, {value:"B", label:"B - Baik"}, {value:"C", label:"C - Cukup"}, {value:"D", label:"D - Kurang"}]} value={form.nilai} onChange={handleChange} />
         </div>
         
         <div>
           <label className="block font-[700] text-[#1a1a1a] mb-2 text-[0.95rem]">Catatan</label>
-          <textarea className="w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-3 font-[500] h-[100px] outline-none resize-none placeholder-slate-500 text-slate-800" defaultValue={mode === "edit" ? "Lancar" : ""} placeholder="Masukkan catatan untuk siswa..."></textarea>
+          <textarea name="catatan" className="w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-3 font-[500] h-[100px] outline-none resize-none placeholder-slate-500 text-slate-800" value={form.catatan} onChange={handleChange} placeholder="Masukkan Catatan ..."></textarea>
         </div>
 
         <hr className="border-t border-black my-6 -mx-6 opacity-100" />
-        
         <div className="flex flex-row justify-end gap-3">
-          <button className="bg-[#E53E3E] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-red-700 transition-colors">
-            <BiTrash /> Reset
-          </button>
-          <button onClick={onSave} className="bg-[#5294A9] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-[#417688] transition-colors">
-            <BiSave /> Simpan
-          </button>
+          <button onClick={() => setForm({ ...initialForm })} className="bg-[#E53E3E] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-red-700 transition-colors"><BiTrash /> Reset</button>
+          <button onClick={handleSaveClick} className="bg-[#5294A9] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-[#417688] transition-colors"><BiSave /> Simpan</button>
         </div>
       </div>
     </ModalWrapper>
@@ -359,51 +405,61 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave }) => {
 };
 
 // --- 2. MODAL IMPORT EXCEL ---
-export const ImportExcelModal = ({ onClose }) => (
-  <div className="fixed inset-0 bg-black/50 z-[1070] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
-    <div className="bg-white rounded-[15px] w-full max-w-md shadow-lg overflow-hidden animate-[zoomIn_0.3s_ease-out]">
-      <div className="flex justify-between items-center p-4 border-b">
-        <h6 className="font-bold text-lg flex items-center gap-2"><BiFile /> Import Excel</h6>
-        <button onClick={onClose} className="text-3xl hover:text-red-500 leading-none">&times;</button>
+export const ImportExcelModal = ({ onClose, onSuccess }) => {
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const handleImport = async () => {
+    if (!file) return alert("Pilih file excel!");
+    const formData = new FormData();
+    formData.append("file", file);
+    setUploading(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post("http://127.0.0.1:8000/api/academic/hafalan/import/", formData, { headers: { Authorization: `Bearer ${token}` } });
+      alert("Import Berhasil!"); onSuccess();
+    } catch (err) { alert("Gagal import. Cek format excel."); } finally { setUploading(false); }
+  };
+  return (
+    <ModalWrapper title="Import Excel" icon={BiFile} onClose={onClose} size="max-w-md">
+      <div className="p-4 text-center">
+        <BiFile className={`text-[5rem] mx-auto mb-2 ${file ? 'text-blue-500' : 'text-[#198754] opacity-80'}`} />
+        <p className="text-sm text-slate-500 mb-4">Header: nisn_siswa, nip_musyif, tanggal, juz, surah, ayat, jenis, nilai, catatan</p>
+        <input type="file" accept=".xlsx, .xls" onChange={(e) => setFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#198754] file:text-white hover:file:bg-[#146c43] cursor-pointer bg-slate-100 rounded-lg border border-slate-200" />
+        <button onClick={handleImport} disabled={uploading} className="w-full mt-8 bg-[#198754] text-white font-bold py-3 rounded-[6px] shadow-sm hover:bg-[#157347] transition-all flex justify-center items-center gap-2">{uploading ? "Sedang Proses..." : "Import Sekarang"}</button>
       </div>
-      <div className="p-8 text-center">
-        <div className="mb-6"><BiFile className="text-[5rem] text-[#198754] mx-auto mb-2 opacity-80" /><p className="text-sm text-slate-500">Upload file format .xlsx / .xls</p></div>
-        <input type="file" className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#198754] file:text-white hover:file:bg-[#146c43] cursor-pointer bg-slate-100 rounded-lg border border-slate-200" />
-      </div>
-      <div className="p-4 border-t bg-slate-50">
-        <button className="w-full bg-[#198754] text-white font-bold py-3 rounded-[6px] shadow-sm hover:bg-[#157347] transition-all flex justify-center items-center gap-2">Import Sekarang</button>
-      </div>
-    </div>
-  </div>
-);
+    </ModalWrapper>
+  );
+};
 
 // --- 3. MODAL KONFIRMASI ---
-export const ConfirmModal = ({ type = "save", onClose, onConfirm }) => {
+export const ConfirmModal = ({ type = "save", onClose, onConfirm, dataHafalan }) => {
   const isDelete = type === "delete";
   const iconBg = isDelete ? "bg-[#DC3545]" : "bg-[#007BFF]";
   const icon = isDelete ? <BiX /> : <BiCheck />;
-  
   const titleText = isDelete ? "Hapus Hafalan?" : (type === "edit" ? "Konfirmasi Perubahan" : "Konfirmasi Data");
+  
+  // PERBAIKAN: titleColor yang sebelumnya bikin crash
   const titleColor = isDelete ? "text-[#DC3545]" : "text-[#007BFF]";
-  const descText = isDelete ? "Apakah Anda yakin ingin menghapus data hafalan ini?" : "Apakah Anda yakin ingin menyimpan data setoran hafalan ini?";
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[1080] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
       <div className="bg-white rounded-[15px] w-full max-w-[450px] p-6 md:p-8 text-center shadow-2xl animate-[zoomIn_0.3s_ease-out] overflow-y-auto max-h-[90vh]">
         <div className={`w-[80px] h-[80px] md:w-[90px] md:h-[90px] rounded-full flex items-center justify-center mx-auto mb-5 text-[3.5rem] md:text-[4rem] text-white ${iconBg} shadow-lg`}>{icon}</div>
         <h2 className={`font-[800] text-[1.4rem] md:text-[1.6rem] mb-2 ${titleColor}`}>{titleText}</h2>
-        <p className="text-slate-500 mb-8 px-2 leading-relaxed text-sm md:text-base">{descText}</p>
-        {!isDelete && (
+        <p className="text-slate-500 mb-8 px-2 leading-relaxed text-sm md:text-base">{isDelete ? "Data akan dihapus permanen." : "Pastikan data sudah benar."}</p>
+        
+        {!isDelete && dataHafalan && (
           <div className="bg-slate-50 p-4 rounded-lg text-left mx-auto mb-8 border border-slate-200 text-sm w-full">
-            <div className="flex mb-2"><span className="w-[80px] md:w-[100px] font-bold text-slate-700 shrink-0">Nama</span><span>: Rizal Ahmad</span></div>
-            <div className="flex mb-2"><span className="w-[80px] md:w-[100px] font-bold text-slate-700 shrink-0">Surah</span><span>: An-Naba</span></div>
-            <div className="flex"><span className="w-[80px] md:w-[100px] font-bold text-slate-700 shrink-0">Juz</span><span>: 30</span></div>
+            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Nama Siswa</span><span>: {dataHafalan._displaySiswa || dataHafalan.nama_siswa || "-"}</span></div>
+            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Surah</span><span>: {dataHafalan.surah}</span></div>
+            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Musyif</span><span>: {dataHafalan._displayMusyif || dataHafalan.nama_musyif || "-"}</span></div>
+            <div className="flex"><span className="w-[100px] font-bold text-slate-700 shrink-0">Juz</span><span>: {dataHafalan.juz}</span></div>
           </div>
         )}
         
         <div className="flex flex-row justify-center gap-3">
-           <button onClick={onClose} className="bg-[#6C757D] text-white py-2.5 px-2 rounded-[8px] font-[700] hover:bg-[#5a6268] transition-all w-1/2">Batal</button>
-          <button onClick={onConfirm} className={`${isDelete ? "bg-[#DC3545] hover:bg-[#bb2d3b]" : "bg-[#007BFF] hover:bg-[#0056b3]"} text-white py-2.5 px-2 rounded-[8px] font-[700] transition-all w-1/2`}>{isDelete ? "Hapus" : "Ya, Simpan"}</button>
+          <button onClick={onClose} className="bg-[#6C757D] text-white py-2.5 px-2 rounded-[8px] font-[700] hover:bg-[#5a6268] transition-all w-1/2">Batal</button>
+          <button onClick={onConfirm} className={`${isDelete ? "bg-[#DC3545] hover:bg-[#bb2d3b]" : "bg-[#007BFF] hover:bg-[#0056b3]"} text-white py-2.5 px-2 rounded-[8px] font-[700] transition-all w-1/2`}>{isDelete ? "Hapus" : "Konfirmasi"}</button>
         </div>
       </div>
     </div>

@@ -1,53 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios"; 
 import { 
-  BiSave, 
-  BiTrash, 
-  BiCheck, 
-  BiFile, 
-  BiPlus, 
-  BiPencil, 
-  BiX,
-  BiShow,
-  BiHide 
+  BiSave, BiTrash, BiCheck, BiFile, BiPlus, 
+  BiPencil, BiX, BiShow, BiHide 
 } from "react-icons/bi";
 
-// --- KOMPONEN INPUT CUSTOM (Support Text, Password+Eye, Select) ---
-const ModalInput = ({ label, type = "text", value, options, readOnly, placeholder, ...props }) => {
+// --- KOMPONEN INPUT CUSTOM ---
+const ModalInput = ({ label, type = "text", value, options, readOnly, placeholder, onChange, name, ...props }) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
-
   const baseClass = "w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-2.5 font-[500] h-[45px] outline-none text-slate-800 placeholder-slate-500 transition-all focus:ring-2 focus:ring-[#5294A9]/50";
   
   return (
     <div className="w-full">
       {label && <label className="block font-[700] text-[#1a1a1a] mb-2 text-[0.9rem]">{label}</label>}
-      
       <div className="relative flex">
         {type === "select" ? (
-          <select className={baseClass} defaultValue={value} {...props}>
+          <select className={baseClass} name={name} value={value} onChange={onChange} {...props}>
             {options?.map((opt, idx) => (
-              <option key={idx} value={opt}>{opt}</option>
+              <option key={idx} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         ) : (
           <input 
             type={inputType} 
-            className={`${baseClass} ${isPassword ? "pr-10" : ""}`} // Padding kanan extra buat icon mata
-            defaultValue={value}
-            readOnly={readOnly}
-            placeholder={placeholder}
-            {...props}
+            name={name} 
+            className={`${baseClass} ${isPassword ? "pr-10" : ""}`} 
+            value={value} 
+            readOnly={readOnly} 
+            placeholder={placeholder} 
+            onChange={onChange} 
+            {...props} 
           />
         )}
-
-        {/* Tombol Mata untuk Password */}
         {isPassword && (
-          <button 
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-slate-600 hover:text-slate-800"
-          >
+          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-slate-600">
             {showPassword ? <BiShow /> : <BiHide />}
           </button>
         )}
@@ -56,59 +44,71 @@ const ModalInput = ({ label, type = "text", value, options, readOnly, placeholde
   );
 };
 
-// --- MODAL WRAPPER ---
 const ModalWrapper = ({ title, icon: Icon, onClose, children, size = "max-w-lg" }) => (
   <div className="fixed inset-0 bg-black/50 z-[1070] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
     <div className={`bg-white rounded-[15px] w-full ${size} shadow-lg flex flex-col max-h-[95vh] animate-[zoomIn_0.3s_ease-out]`}>
       <div className="border-b border-black px-6 py-4 flex justify-between items-center shrink-0">
-        <h5 className="font-[700] text-[1.2rem] flex items-center gap-2 text-slate-800">
-          {Icon && <Icon className="text-xl" />} {title}
-        </h5>
-        <button onClick={onClose} className="text-3xl hover:text-red-500 transition-colors leading-none">&times;</button>
+        <h5 className="font-[700] text-[1.2rem] flex items-center gap-2 text-slate-800">{Icon && <Icon className="text-xl" />} {title}</h5>
+        <button onClick={onClose} className="text-3xl hover:text-red-500 leading-none">&times;</button>
       </div>
-      <div className="p-6 overflow-y-auto custom-scrollbar">
-        {children}
-      </div>
+      <div className="p-6 overflow-y-auto custom-scrollbar">{children}</div>
     </div>
   </div>
 );
 
 // --- 1. MODAL TAMBAH / EDIT USER ---
-export const FormUserModal = ({ mode = "add", onClose, onSave }) => {
+export const FormUserModal = ({ mode = "add", onClose, onSave, userData }) => {
+  const initialForm = {
+    username: "", first_name: "", last_name: "", phone_number: "", email: "", role: "WALI_MURID", password: ""
+  };
+
+  const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    // LOGIKA: Jika mode edit, isi form. Jika mode add, reset form agar bersih
+    if (mode === "edit" && userData) {
+      setForm({ ...userData, password: "" });
+    } else {
+      setForm(initialForm);
+    }
+  }, [mode, userData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    // LOGIKA: Hanya angka yang bisa diinput di field phone_number
+    if (name === "phone_number") {
+      const onlyNums = value.replace(/[^0-9]/g, ""); 
+      setForm({ ...form, [name]: onlyNums });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  const roleOptions = [
+    { label: "-- Pilih Role --", value: "" },
+    { label: "Administrator", value: "ADMIN" },
+    { label: "Musyif", value: "MUSYIF" },
+    { label: "Wali Murid", value: "WALI_MURID" }
+  ];
+
   return (
-    <ModalWrapper 
-      title={mode === "add" ? "Tambah User" : "Edit User"} 
-      icon={mode === "add" ? BiPlus : BiPencil} 
-      onClose={onClose}
-      size="max-w-3xl"
-    >
+    <ModalWrapper title={mode === "add" ? "Tambah User" : "Edit User"} icon={mode === "add" ? BiPlus : BiPencil} onClose={onClose} size="max-w-3xl">
       <div className="space-y-4">
-        <ModalInput label="Username" placeholder="Masukkan Username" value={mode === "edit" ? "Rizal" : ""} />
-        <ModalInput label="Nama Lengkap" placeholder="Masukkan Nama Lengkap" value={mode === "edit" ? "Rizal Ahmad M" : ""} />
-        <ModalInput label="Nomor Telephone" placeholder="Masukkan Nomor Telephon" value={mode === "edit" ? "089676440508" : ""} />
-        <ModalInput label="Email" type="email" placeholder="Masukkan Email" value={mode === "edit" ? "rizal@gmail.com" : ""} />
-        
-        <ModalInput 
-          label="Role" 
-          type="select" 
-          options={["-- Pilih Role --", "Administrator", "Musyif", "Wali Murid"]} 
-          value={mode === "edit" ? "Wali Murid" : ""} 
-        />
-
-        <ModalInput 
-          label="Password" 
-          type="password" 
-          placeholder="Masukkan Password" 
-          value={mode === "edit" ? "12345678" : ""} // Mockup value
-        />
-
+        <ModalInput label="Username" name="username" placeholder="Masukkan Username" value={form.username} onChange={handleChange} readOnly={mode === "edit"} />
+        <div className="flex gap-4">
+          <ModalInput label="Nama Depan" name="first_name" placeholder="Masukkan Nama Depan" value={form.first_name} onChange={handleChange} />
+          <ModalInput label="Nama Belakang" name="last_name" placeholder="Masukkan Nama Belakang" value={form.last_name} onChange={handleChange} />
+        </div>
+        <ModalInput label="Nomor Telephone" name="phone_number" placeholder="Masukkan Nomor Telephone" value={form.phone_number} onChange={handleChange} />
+        <ModalInput label="Email" name="email" type="email" placeholder="Masukkan Email" value={form.email} onChange={handleChange} />
+        <ModalInput label="Role" name="role" type="select" options={roleOptions} value={form.role} onChange={handleChange} />
+        <ModalInput label={mode === "add" ? "Password" : "Password (Kosongkan jika tidak ganti)"} name="password" type="password" placeholder="Masukkan Password" value={form.password} onChange={handleChange} />
         <hr className="border-t border-black my-6 -mx-6 opacity-100" />
-        
         <div className="flex flex-row justify-end gap-3">
-          <button className="bg-[#E53E3E] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-red-700 transition-colors">
+          <button onClick={() => setForm(initialForm)} className="bg-[#E53E3E] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2">
             <BiTrash /> Reset
           </button>
-          <button onClick={onSave} className="bg-[#5294A9] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-[#417688] transition-colors">
+          <button onClick={() => onSave(form)} className="bg-[#5294A9] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2">
             <BiSave /> {mode === "add" ? "Simpan" : "Ubah"}
           </button>
         </div>
@@ -117,53 +117,53 @@ export const FormUserModal = ({ mode = "add", onClose, onSave }) => {
   );
 };
 
-// --- 2. MODAL IMPORT EXCEL ---
-export const ImportExcelModal = ({ onClose }) => (
-  <div className="fixed inset-0 bg-black/50 z-[1070] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
-    <div className="bg-white rounded-[15px] w-full max-w-md shadow-lg overflow-hidden animate-[zoomIn_0.3s_ease-out]">
-      <div className="flex justify-between items-center p-4 border-b">
-        <h6 className="font-bold text-lg flex items-center gap-2"><BiFile /> Import Excel</h6>
-        <button onClick={onClose} className="text-3xl hover:text-red-500 leading-none">&times;</button>
-      </div>
-      <div className="p-8 text-center">
-        <div className="mb-6"><BiFile className="text-[5rem] text-[#198754] mx-auto mb-2 opacity-80" /><p className="text-sm text-slate-500">Upload file format .xlsx / .xls</p></div>
-        <input type="file" className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#198754] file:text-white hover:file:bg-[#146c43] cursor-pointer bg-slate-100 rounded-lg border border-slate-200" />
-      </div>
-      <div className="p-4 border-t bg-slate-50">
-        <button className="w-full bg-[#198754] text-white font-bold py-3 rounded-[6px] shadow-sm hover:bg-[#157347] transition-all flex justify-center items-center gap-2">Import Sekarang</button>
+// --- (Modal Import & Confirm tetap sama seperti sebelumnya) ---
+export const ImportExcelModal = ({ onClose, onSuccess }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const handleImport = async () => {
+    if (!selectedFile) return alert("Pilih file excel!");
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    setUploading(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post("http://127.0.0.1:8000/api/users/import/", formData, { headers: { Authorization: `Bearer ${token}` } });
+      alert("Import Sukses!"); onSuccess();
+    } catch (err) { alert("Gagal import."); } finally { setUploading(false); }
+  };
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[1070] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[15px] w-full max-w-md shadow-lg p-6">
+        <h6 className="font-bold mb-4">Import Excel</h6>
+        <input type="file" accept=".xlsx, .xls" onChange={(e) => setSelectedFile(e.target.files[0])} className="mb-4" />
+        <button onClick={handleImport} disabled={uploading} className="w-full bg-[#198754] text-white py-2 rounded">{uploading ? "Proses..." : "Import"}</button>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-// --- 3. MODAL KONFIRMASI ---
-export const ConfirmModal = ({ type = "save", onClose, onConfirm }) => {
+export const ConfirmModal = ({ type = "add", onClose, onConfirm, userData }) => {
   const isDelete = type === "delete";
-  const iconBg = isDelete ? "bg-[#DC3545]" : "bg-[#007BFF]";
-  const icon = isDelete ? <BiX /> : <BiCheck />;
-  
-  const titleText = isDelete ? "Hapus User?" : (type === "edit" ? "Konfirmasi Perubahan" : "Konfirmasi Data User");
-  const titleColor = isDelete ? "text-[#DC3545]" : "text-[#007BFF]";
-  const descText = isDelete ? "Apakah Anda yakin ingin menghapus data user ini?" : "Silakan periksa kembali data user berikut sebelum disimpan.";
-
+  const iconBg = isDelete ? "bg-[#EF5350]" : "bg-[#4285F4]";
+  const titleText = isDelete ? "Hapus User?" : "Konfirmasi Perubahan";
+  const getRoleLabel = (r) => r === "ADMIN" ? "Administrator" : r === "MUSYIF" ? "Musyif" : "Wali Murid";
   return (
-    <div className="fixed inset-0 bg-black/50 z-[1080] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
-      <div className="bg-white rounded-[15px] w-full max-w-[450px] p-6 md:p-8 text-center shadow-2xl animate-[zoomIn_0.3s_ease-out] overflow-y-auto max-h-[90vh]">
-        <div className={`w-[80px] h-[80px] md:w-[90px] md:h-[90px] rounded-full flex items-center justify-center mx-auto mb-5 text-[3.5rem] md:text-[4rem] text-white ${iconBg} shadow-lg`}>{icon}</div>
-        <h2 className={`font-[800] text-[1.4rem] md:text-[1.6rem] mb-2 ${titleColor}`}>{titleText}</h2>
-        <p className="text-slate-500 mb-8 px-2 leading-relaxed text-sm md:text-base">{descText}</p>
-        
-        {!isDelete && (
-          <div className="bg-slate-50 p-4 rounded-lg text-left mx-auto mb-8 border border-slate-200 text-sm w-full">
-            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Username</span><span>: Rizal</span></div>
-            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Nama</span><span>: Rizal Ahmad M</span></div>
-            <div className="flex"><span className="w-[100px] font-bold text-slate-700 shrink-0">Role</span><span>: Wali Murid</span></div>
+    <div className="fixed inset-0 bg-black/50 z-[1080] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[24px] w-full max-w-[480px] p-8 text-center shadow-2xl animate-[zoomIn_0.3s_ease-out]">
+        <div className={`w-[85px] h-[85px] rounded-full flex items-center justify-center mx-auto mb-6 text-[4.5rem] text-white ${iconBg}`}>{isDelete ? <BiX /> : <BiCheck />}</div>
+        <h2 className="font-[800] text-[1.7rem] mb-2 text-[#007BFF]">{titleText}</h2>
+        <p className="text-[#4A4A4A] mb-8 font-[500] leading-snug">{isDelete ? "Data ini akan dihapus permanen. Yakin?" : "Periksa kembali data sebelum disimpan."}</p>
+        {!isDelete && userData && (
+          <div className="mb-10 text-left mx-auto max-w-[300px] text-[1.05rem]">
+            <div className="grid grid-cols-[110px_15px_1fr] mb-2"><span className="font-[700]">Username</span><span>:</span><span>{userData.username}</span></div>
+            <div className="grid grid-cols-[110px_15px_1fr] mb-2"><span className="font-[700]">Nama</span><span>:</span><span>{userData.first_name} {userData.last_name}</span></div>
+            <div className="grid grid-cols-[110px_15px_1fr]"><span className="font-[700]">Role</span><span>:</span><span>{getRoleLabel(userData.role)}</span></div>
           </div>
         )}
-        
-        <div className="flex flex-row justify-center gap-3">
-           <button onClick={onClose} className="bg-[#6C757D] text-white py-2.5 px-2 rounded-[8px] font-[700] hover:bg-[#5a6268] transition-all w-1/2">Batal</button>
-          <button onClick={onConfirm} className={`${isDelete ? "bg-[#DC3545] hover:bg-[#bb2d3b]" : "bg-[#007BFF] hover:bg-[#0056b3]"} text-white py-2.5 px-2 rounded-[8px] font-[700] transition-all w-1/2`}>{isDelete ? "Hapus" : "Konfirmasi"}</button>
+        <div className="flex gap-4">
+          <button onClick={onClose} className="bg-[#EF5350] text-white py-3 rounded-[12px] font-[700] flex-1">Batal</button>
+          <button onClick={onConfirm} className="bg-[#007BFF] text-white py-3 rounded-[12px] font-[700] flex-1">Konfirmasi</button>
         </div>
       </div>
     </div>

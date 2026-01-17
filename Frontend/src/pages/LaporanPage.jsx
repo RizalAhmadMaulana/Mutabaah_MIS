@@ -1,173 +1,272 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import DashboardLayout from "../components/templates/DashboardLayout";
 import DashboardInput from "../components/atoms/DashboardInput";
 import ActionButton from "../components/atoms/ActionButton";
-import CustomTable from "../components/molecules/CustomTable";
 import { 
   BiDownload, 
   BiSearch, 
   BiBookContent, 
-  BiTimeFive 
+  BiTimeFive,
+  BiCheckCircle,
+  BiTargetLock
 } from "react-icons/bi";
 
 const LaporanPage = () => {
-  // State untuk menangani logika dropdown nama siswa
-  const [selectedStudent, setSelectedStudent] = useState("Semua");
+  const token = localStorage.getItem("token");
+  const headers = { Authorization: `Bearer ${token}` };
 
-  // Mockup data ringkasan per siswa
-  const studentSummary = {
-    "Rizal": { total: "5 Surah", target: "5 Surah", status: "Terpenuhi", statusColor: "bg-[#d1fae5] text-[#059669]" },
-    "Ahmad": { total: "3 Surah", target: "5 Surah", status: "Belum Terpenuhi", statusColor: "bg-[#fee2e2] text-[#dc2626]" }
+  const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+  const isWali = storedUser.role === 'WALI_MURID';
+
+  const [kelasList, setKelasList] = useState([]);
+  const [siswaListRekap, setSiswaListRekap] = useState([]);
+  const [siswaListRiwayat, setSiswaListRiwayat] = useState([]);
+
+  const [rekapFilter, setRekapFilter] = useState({
+    dari_tgl: new Date().toISOString().split('T')[0],
+    sampai_tgl: new Date().toISOString().split('T')[0],
+    kelas: isWali ? (storedUser.kelas || "Semua") : "Semua",
+    siswa: isWali ? (storedUser.id || "Semua") : "Semua"
+  });
+
+  const [riwayatFilter, setRiwayatFilter] = useState({
+    kelas: isWali ? (storedUser.kelas || "Semua") : "Semua",
+    siswa: isWali ? (storedUser.id || "Semua") : "Semua"
+  });
+
+  const [rekapData, setRekapData] = useState({ summary: null, details: [] });
+  const [riwayatData, setRiwayatData] = useState([]);
+  const [loadingRekap, setLoadingRekap] = useState(false);
+  const [loadingRiwayat, setLoadingRiwayat] = useState(false);
+
+  useEffect(() => {
+    if (!isWali) {
+      const fetchKelas = async () => {
+        try {
+          const res = await axios.get("http://127.0.0.1:8000/api/academic/kelas/", { headers });
+          setKelasList(res.data);
+        } catch (err) { console.error("Gagal load kelas", err); }
+      };
+      fetchKelas();
+    }
+    handleSearchRekap();
+    handleSearchRiwayat("semua");
+  }, []);
+
+  const handleKelasChangeRekap = async (e) => {
+    const kelas = e.target.value;
+    setRekapFilter({ ...rekapFilter, kelas, siswa: "Semua" });
+    if (kelas !== "Semua") {
+      try {
+        const res = await axios.get(`http://127.0.0.1:8000/api/siswa/?kelas=${kelas}`, { headers });
+        setSiswaListRekap(res.data);
+      } catch (err) { console.error(err); }
+    } else { setSiswaListRekap([]); }
   };
 
-  const handleStudentChange = (e) => {
-    setSelectedStudent(e.target.value);
+  const handleKelasChangeRiwayat = async (e) => {
+    const kelas = e.target.value;
+    setRiwayatFilter({ ...riwayatFilter, kelas, siswa: "Semua" });
+    if (kelas !== "Semua") {
+      try {
+        const res = await axios.get(`http://127.0.0.1:8000/api/siswa/?kelas=${kelas}`, { headers });
+        setSiswaListRiwayat(res.data);
+      } catch (err) { console.error(err); }
+    } else { setSiswaListRiwayat([]); }
+  };
+
+  const handleSearchRekap = async () => {
+    setLoadingRekap(true);
+    try {
+      const { dari_tgl, sampai_tgl, kelas, siswa } = rekapFilter;
+      const res = await axios.get(`http://127.0.0.1:8000/api/academic/laporan/rekap_data/?dari_tgl=${dari_tgl}&sampai_tgl=${sampai_tgl}&kelas=${kelas}&siswa=${siswa}`, { headers });
+      setRekapData(res.data);
+    } catch (err) { console.error("Search failed:", err); }
+    finally { setLoadingRekap(false); }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const { dari_tgl, sampai_tgl, kelas, siswa } = rekapFilter;
+      const response = await axios({
+        url: `http://127.0.0.1:8000/api/academic/laporan/download_pdf/?dari_tgl=${dari_tgl}&sampai_tgl=${sampai_tgl}&kelas=${kelas}&siswa=${siswa}`,
+        method: 'GET', responseType: 'blob', headers
+      });
+      if (response.status === 200) {
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `Laporan_Mutabaah_${dari_tgl}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => { link.remove(); window.URL.revokeObjectURL(downloadUrl); }, 100);
+      }
+    } catch (err) { alert("Gagal mengunduh PDF."); }
+  };
+
+  const handleSearchRiwayat = async (filterWaktu = "semua") => {
+    setLoadingRiwayat(true);
+    try {
+      const { kelas, siswa } = riwayatFilter;
+      const res = await axios.get(`http://127.0.0.1:8000/api/academic/laporan/riwayat/?kelas=${kelas}&siswa=${siswa}&filter_waktu=${filterWaktu}`, { headers });
+      setRiwayatData(res.data);
+    } catch (err) { console.error("Riwayat failed:", err); }
+    finally { setLoadingRiwayat(false); }
   };
 
   return (
     <DashboardLayout title="Laporan Progress">
       
-      {/* --- KARTU 1: REKAP LAPORAN (UPDATED DESIGN) --- */}
-      <div className="bg-white rounded-[8px] p-6 border-t-[5px] border-[#2ECC71] shadow-[0_4px_15px_rgba(0,0,0,0.05)] mb-8">
-        <div className="flex items-center gap-2.5 font-[700] text-[1.25rem] mb-6 text-slate-800">
-          <BiBookContent className="text-2xl" /> Rekap Laporan
+      {/* KARTU 1: REKAP LAPORAN */}
+      <div className="bg-white rounded-[8px] p-4 sm:p-6 border-t-[5px] border-[#1B4332] shadow-sm mb-8">
+        <div className="flex items-center gap-2 mb-6 text-[#1B4332] font-bold text-lg border-b pb-3">
+          <BiBookContent className="text-2xl" /> REKAP LAPORAN
         </div>
 
-        {/* --- FORM FILTER --- */}
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <DashboardInput label="Dari Tanggal" type="date" value={rekapFilter.dari_tgl} onChange={(e) => setRekapFilter({...rekapFilter, dari_tgl: e.target.value})} />
+          <DashboardInput label="Sampai Tanggal" type="date" value={rekapFilter.sampai_tgl} onChange={(e) => setRekapFilter({...rekapFilter, sampai_tgl: e.target.value})} />
           
-          {/* Baris 1: Tanggal (2 Kolom) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DashboardInput label="Dari Tanggal" type="date" defaultValue="2026-01-08" />
-            <DashboardInput label="Sampai Tanggal" type="date" defaultValue="2026-02-08" />
-          </div>
-
-          {/* Baris 2: Nama & Jenis (2 Kolom) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Dropdown Nama dengan Logic onChange */}
-            <div>
-              <label className="block font-[600] text-[#1a1a1a] mb-2 text-[0.95rem]">Nama Siswa</label>
-              <select 
-                className="w-full bg-[#f8fafc] border border-gray-300 rounded-[4px] px-4 py-2.5 font-[500] outline-none text-slate-800 focus:border-[#2ECC71] transition-all"
-                value={selectedStudent}
-                onChange={handleStudentChange}
-              >
-                <option value="Semua">Semua</option>
-                <option value="Rizal">Rizal</option>
-                <option value="Ahmad">Ahmad</option>
-              </select>
-            </div>
-
-            {/* Dropdown Jenis + Tombol Search */}
-            <div className="w-full">
-              <label className="block font-[600] text-[#1a1a1a] mb-2 text-[0.95rem]">Jenis Hafalan</label>
-              <div className="flex gap-2">
-                <div className="flex-grow">
-                  <select className="w-full bg-[#f8fafc] border border-gray-300 rounded-[4px] px-4 py-2.5 font-[500] outline-none text-slate-800 focus:border-[#2ECC71] transition-all">
-                    <option value="Semua">Semua</option>
-                    <option value="Ziyadah">Ziyadah</option>
-                    <option value="Murajaah">Murajaah</option>
-                  </select>
-                </div>
-                <button className="bg-[#1B4332] text-white rounded-[4px] w-[45px] flex items-center justify-center text-xl hover:opacity-90 transition-all">
-                  <BiSearch />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Tombol Download (Full Width, Hijau Gelap) */}
-          <button className="w-full bg-[#1B4332] text-white font-[700] py-3 rounded-[6px] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm mt-2">
-            <BiDownload className="text-xl" /> Download Laporan
-          </button>
-
+          <DashboardInput 
+            label="Kelas" type="select" 
+            options={isWali ? [rekapFilter.kelas] : ["Semua", ...kelasList.map(k => k.nama_kelas)]} 
+            value={rekapFilter.kelas} 
+            disabled={isWali}
+            onChange={handleKelasChangeRekap} 
+          />
+          <DashboardInput 
+            label="Nama Siswa" type="select" 
+            options={isWali ? [{label: storedUser.name, value: storedUser.id}] : ["Semua", ...siswaListRekap.map(s => ({label: `${s.first_name} ${s.last_name}`, value: s.id}))]} 
+            value={rekapFilter.siswa} 
+            disabled={isWali}
+            onChange={(e) => setRekapFilter({...rekapFilter, siswa: e.target.value})} 
+          />
         </div>
 
-        {/* --- SECTION DATA SISWA (Hanya muncul jika siswa dipilih) --- */}
-        {selectedStudent !== "Semua" && studentSummary[selectedStudent] && (
-          <div className="mt-8 animate-[fadeIn_0.5s_ease-out]">
-            <h4 className="text-[#2ECC71] font-[700] text-[1.1rem] mb-4">
-              Laporan Siswa : <span className="text-[#1B4332]">{selectedStudent}</span>
-            </h4>
-            
-            <div className="space-y-2.5 text-[0.95rem] font-[600] text-slate-700 ml-1">
-              <div className="flex items-center">
-                <span className="w-[140px] shrink-0">Total Hafalan</span>
-                <span className="mr-2">:</span>
-                <span>{studentSummary[selectedStudent].total}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-[140px] shrink-0">Target Hafalan</span>
-                <span className="mr-2">:</span>
-                <span>{studentSummary[selectedStudent].target}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-[140px] shrink-0">Status Hafalan</span>
-                <span className="mr-2">:</span>
-                <span className={`${studentSummary[selectedStudent].statusColor} px-3 py-1 rounded-[4px] text-[0.8rem] font-bold uppercase tracking-wide`}>
-                  {studentSummary[selectedStudent].status}
-                </span>
-              </div>
+        {/* Buttons: Sejajar (Horizontal) di HP & Desktop */}
+        <div className="flex flex-row gap-2 sm:gap-3 justify-center mb-8">
+          <ActionButton 
+            label="Search Data" 
+            icon={BiSearch} 
+            variant="primary" 
+            className="flex-1 sm:flex-none sm:w-auto px-2 sm:px-10 py-2.5 text-[0.75rem] sm:text-base whitespace-nowrap" 
+            onClick={handleSearchRekap} 
+          />
+          <ActionButton 
+            label="Download PDF" 
+            icon={BiDownload} 
+            variant="primary" 
+            className="flex-1 sm:flex-none sm:w-auto px-2 sm:px-10 py-2.5 text-[0.75rem] sm:text-base whitespace-nowrap" 
+            onClick={handleDownloadPDF} 
+          />
+        </div>
+
+        {rekapData.summary && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-[#f0fdf4] p-4 sm:p-5 rounded-xl border border-green-100 flex items-center gap-4 shadow-sm">
+               <div className="bg-green-500 p-3 rounded-lg text-white text-2xl"><BiCheckCircle /></div>
+               <div><div className="text-slate-500 text-xs sm:text-sm font-semibold">Total Hafalan</div><div className="text-lg sm:text-2xl font-bold text-slate-800">{rekapData.summary.total_hafalan}</div></div>
+            </div>
+            <div className="bg-[#f0f9ff] p-4 sm:p-5 rounded-xl border border-blue-100 flex items-center gap-4 shadow-sm">
+               <div className="bg-blue-500 p-3 rounded-lg text-white text-2xl"><BiTargetLock /></div>
+               <div><div className="text-slate-500 text-xs sm:text-sm font-semibold">Target Kelas</div><div className="text-lg sm:text-2xl font-bold text-slate-800">{rekapData.summary.target_hafalan}</div></div>
+            </div>
+            <div className={`p-4 sm:p-5 rounded-xl border flex items-center gap-4 shadow-sm ${rekapData.summary.status === 'Terpenuhi' ? 'bg-green-100 border-green-200' : 'bg-red-50 border-red-100'}`}>
+               <div className={`p-3 rounded-lg text-white text-2xl ${rekapData.summary.status === 'Terpenuhi' ? 'bg-green-600' : 'bg-red-500'}`}><BiBookContent /></div>
+               <div><div className="text-slate-500 text-xs sm:text-sm font-semibold">Status Capaian</div><div className={`text-base sm:text-xl font-bold ${rekapData.summary.status === 'Terpenuhi' ? 'text-green-700' : 'text-red-700'}`}>{rekapData.summary.status}</div></div>
             </div>
           </div>
         )}
 
-        {/* --- TABEL DATA --- */}
-        <div className="mt-8">
-          <CustomTable 
-            headers={["Nama Siswa", "Tanggal", "Musyif", "Surah", "Ayat", "Jenis", "Nilai", "Catatan"]} 
-          />
-          {/* Mockup Data Row (Manual render utk demo) */}
-          <div className="border border-t-0 border-black overflow-x-auto">
-             <table className="w-full min-w-[800px]">
-                <tbody>
-                   {/* BARIS TERAKHIR SUDAH DIHAPUS DISINI AGAR RAPI */}
-                </tbody>
-             </table>
-          </div>
+        <div className="border border-black rounded-[4px] overflow-x-auto bg-white custom-scrollbar">
+          <table className="w-full border-collapse min-w-[1100px]">
+            <thead>
+              <tr className="bg-white">
+                {["No", "Tanggal", "Nama Siswa", "Surah", "Juz", "Ayat", "Jenis", "Nilai", "Catatan"].map((h, i) => (
+                  <th key={i} className="border border-black px-3 py-3 text-center font-[700] text-black text-[0.85rem] uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loadingRekap ? <tr><td colSpan={9} className="text-center p-10 font-bold text-slate-400">Loading...</td></tr> : 
+                rekapData.details.length > 0 ? rekapData.details.map((item, idx) => (
+                <tr key={idx} className="even:bg-gray-50 text-sm">
+                  <td className="border border-black p-2.5 text-center">{idx + 1}</td>
+                  <td className="border border-black p-2.5 text-center">{item.tanggal}</td>
+                  <td className="border border-black p-2.5 font-medium">{item.nama_siswa}</td>
+                  <td className="border border-black p-2.5">{item.surah}</td>
+                  <td className="border border-black p-2.5 text-center">{item.juz}</td>
+                  <td className="border border-black p-2.5 text-center">{item.ayat}</td>
+                  <td className="border border-black p-2.5 text-center">{item.jenis_setoran}</td>
+                  <td className="border border-black p-2.5 text-center font-bold">{item.nilai}</td>
+                  <td className="border border-black p-2.5 italic text-slate-600">{item.catatan || "-"}</td>
+                </tr>
+              )) : <tr><td colSpan={9} className="border border-black p-10 text-center text-slate-400">Data tidak ditemukan.</td></tr>}
+            </tbody>
+          </table>
         </div>
-
       </div>
 
-      {/* --- KARTU 2: RIWAYAT TERBARU --- */}
-      <div className="bg-white rounded-[8px] p-6 border-t-[5px] border-[#2ECC71] shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center gap-2.5 font-[700] text-[1.25rem] mb-6 text-slate-800">
-          <BiTimeFive className="text-2xl" /> Riwayat Terbaru
+      {/* KARTU 2: RIWAYAT TERBARU */}
+      <div className="bg-white rounded-[8px] p-4 sm:p-6 border-t-[5px] border-[#1B4332] shadow-sm">
+        <div className="flex items-center gap-2 mb-6 text-[#1B4332] font-bold text-lg border-b pb-3">
+          <BiTimeFive className="text-2xl" /> RIWAYAT TERBARU
         </div>
 
-        {/* --- PERBAIKAN DISINI: TANGGAL & SEARCH SEJAJAR --- */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
-          
-          {/* Nama Siswa (Full width di HP) */}
-          <div className="w-full md:flex-[2]">
-            <DashboardInput label="Nama Siswa" type="select" options={["Semua"]} />
+          <div className="w-full md:flex-[1]">
+             <DashboardInput 
+               label="Kelas" type="select" options={isWali ? [riwayatFilter.kelas] : ["Semua", ...kelasList.map(k => k.nama_kelas)]} 
+               value={riwayatFilter.kelas} disabled={isWali} onChange={handleKelasChangeRiwayat} 
+             />
           </div>
-
-          {/* Wrapper Tanggal & Button (Sejajar Kanan-Kiri di HP & Laptop) */}
-          <div className="w-full md:flex-[1] flex gap-2 items-end">
+          <div className="w-full md:flex-[2] flex gap-2 items-end">
             <div className="flex-grow">
-               <DashboardInput label="Tanggal Hafalan" type="date" defaultValue="2026-01-08" />
+               <DashboardInput 
+                 label="Nama Siswa" type="select" options={isWali ? [{label: storedUser.name, value: storedUser.id}] : ["Semua", ...siswaListRiwayat.map(s => ({label: `${s.first_name} ${s.last_name}`, value: s.id}))]} 
+                 value={riwayatFilter.siswa} disabled={isWali} onChange={(e) => setRiwayatFilter({...riwayatFilter, siswa: e.target.value})} 
+               />
             </div>
-            {/* Tombol Search Nempel di Kanan Input Tanggal */}
             <div className="mb-[1px]"> 
-               <ActionButton icon={BiSearch} variant="primary" className="w-[45px] h-[45px]" />
+               <ActionButton icon={BiSearch} variant="primary" className="w-[45px] h-[45px]" onClick={() => handleSearchRiwayat("semua")} />
             </div>
           </div>
-
         </div>
 
-        {/* Tombol Filter Cepat */}
         <div className="flex flex-wrap justify-center gap-2 mb-6">
-          <ActionButton label="Hari Ini" variant="green" className="px-6 py-2 text-sm" />
-          <ActionButton label="Kemarin" variant="yellow" className="px-6 py-2 text-sm" />
-          <ActionButton label="Semua" variant="blue" className="px-6 py-2 text-sm" />
+          <ActionButton label="Hari Ini" variant="green" className="px-4 sm:px-6 py-2 text-xs sm:text-sm" onClick={() => handleSearchRiwayat("hari_ini")} />
+          <ActionButton label="Kemarin" variant="yellow" className="px-4 sm:px-6 py-2 text-xs sm:text-sm" onClick={() => handleSearchRiwayat("kemarin")} />
+          <ActionButton label="Semua" variant="blue" className="px-4 sm:px-6 py-2 text-xs sm:text-sm" onClick={() => handleSearchRiwayat("semua")} />
         </div>
 
-        <CustomTable 
-          headers={["Nama Siswa", "Tanggal", "Musyif", "Surah", "Ayat", "Jenis", "Nilai", "Catatan"]} 
-        />
+        <div className="border border-black rounded-[4px] overflow-x-auto bg-white custom-scrollbar">
+          <table className="w-full border-collapse min-w-[1000px]">
+            <thead>
+              <tr className="bg-white">
+                {["No", "Tanggal", "Nama Siswa", "Surah", "Jenis", "Nilai", "Catatan"].map((h, i) => (
+                  <th key={i} className="border border-black px-3 py-3 text-center font-[700] text-black text-[0.85rem] uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loadingRiwayat ? <tr><td colSpan={7} className="text-center p-10 font-bold text-slate-400">Loading...</td></tr> : 
+                riwayatData.length > 0 ? riwayatData.map((item, idx) => (
+                <tr key={idx} className="even:bg-gray-50 text-sm">
+                  <td className="border border-black p-2.5 text-center">{idx + 1}</td>
+                  <td className="border border-black p-2.5 text-center">{item.tanggal}</td>
+                  <td className="border border-black p-2.5 font-medium">{item.nama_siswa}</td>
+                  <td className="border border-black p-2.5">{item.surah}</td>
+                  <td className="border border-black p-2.5 text-center">{item.jenis_setoran}</td>
+                  <td className="border border-black p-2.5 text-center font-bold text-green-700">{item.nilai}</td>
+                  <td className="border border-black p-2.5 italic text-slate-600">{item.catatan || "-"}</td>
+                </tr>
+              )) : <tr><td colSpan={7} className="border border-black p-10 text-center text-slate-400">Data kosong.</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </div>
-
     </DashboardLayout>
   );
 };
