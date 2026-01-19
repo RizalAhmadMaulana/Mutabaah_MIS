@@ -20,7 +20,16 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
+# Library Tambahan untuk Grafik di PDF
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.piecharts import Pie
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+
 User = get_user_model()
+
+class IsAdminOrMusyif(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role in ['ADMIN', 'MUSYIF'])
 
 class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -36,7 +45,7 @@ class KelasViewSet(viewsets.ModelViewSet):
 
 # --- IMPORT EXCEL KELAS ---
 class KelasImportExcelView(generics.CreateAPIView):
-    permission_classes = [IsAdminRole]
+    permission_classes = [IsAdminOrMusyif]
     parser_classes = (MultiPartParser,)
 
     def post(self, request, *args, **kwargs):
@@ -190,6 +199,9 @@ class LaporanViewSet(viewsets.ViewSet):
             if target_siswa_id != "Semua":
                 queryset = queryset.filter(siswa_id=target_siswa_id)
 
+        # Evaluasi queryset ke list agar perhitungan akurat
+        data_list = list(queryset)
+
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=25, leftMargin=25, topMargin=30, bottomMargin=30)
         elements = []
@@ -226,10 +238,85 @@ class LaporanViewSet(viewsets.ViewSet):
                 sum_table.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('LINEBELOW', (0,0), (1,0), 1, colors.grey), ('LINEBELOW', (2,0), (3,0), 1, colors.grey)]))
                 elements.append(sum_table)
                 elements.append(Spacer(1, 20))
+
+                # --- FITUR CHART PDF (LOGIKA DIPERBAIKI) ---
+                # PERBAIKAN: Hitung langsung dari data_list agar proporsi akurat
+                mapping = {'A': 0, 'B': 0, 'C': 0, 'D': 0}
+                for h in data_list:
+                    if h.nilai in mapping: mapping[h.nilai] += 1
+                
+                total_nilai = sum(mapping.values())
+                
+                d_pie = Drawing(200, 140)
+                pc = Pie()
+                pc.x = 25
+                pc.y = 20
+                pc.width = 100
+                pc.height = 100
+                pc.data = [mapping['A'], mapping['B'], mapping['C'], mapping['D']]
+                
+                # Tambahkan Persentase ke Label
+                pc_labels = []
+                for k in ['A', 'B', 'C', 'D']:
+                    val = mapping[k]
+                    if val > 0:
+                        pct = (val / total_nilai) * 100
+                        pc_labels.append(f"{k} ({pct:.0f}%)")
+                    else:
+                        pc_labels.append("")
+                pc.labels = pc_labels
+                
+                pc.slices.strokeWidth = 0.5
+                pc.slices[0].fillColor = colors.HexColor("#22C55E")
+                pc.slices[1].fillColor = colors.HexColor("#3b82f6")
+                pc.slices[2].fillColor = colors.HexColor("#fbbf24")
+                pc.slices[3].fillColor = colors.HexColor("#f87171")
+                d_pie.add(pc)
+
+                # Statistik Progres (Kumulatif 7 Hari Terakhir)
+                today = date.today()
+                labels_p, data_p = [], []
+                day_map = {"Monday":"Sen", "Tuesday":"Sel", "Wednesday":"Rab", "Thursday":"Kam", "Friday":"Jum", "Saturday":"Sab", "Sunday":"Min"}
+                for i in range(6, -1, -1):
+                    t_d = today - timedelta(days=i)
+                    labels_p.append(day_map.get(t_d.strftime('%A')))
+                    # Hitung kumulatif surah unik sampai tanggal t_d
+                    c = queryset.filter(tanggal__lte=t_d).values('surah').distinct().count()
+                    data_p.append(c)
+
+                d_bar = Drawing(250, 140)
+                bc = VerticalBarChart()
+                bc.x = 30
+                bc.y = 30
+                bc.height = 80
+                bc.width = 180
+                bc.data = [tuple(data_p)]
+                bc.categoryAxis.categoryNames = labels_p
+                bc.bars[0].fillColor = colors.HexColor("#22C55E")
+                bc.valueAxis.valueMin = 0
+                # Menyesuaikan step agar tidak terlalu rapat
+                max_val = max(data_p) if data_p else 5
+                bc.valueAxis.valueMax = max_val + 2
+                bc.valueAxis.valueStep = 1 if max_val < 10 else 2
+                d_bar.add(bc)
+
+                chart_table_data = [
+                    [Paragraph("<b>Diagram Grafik Nilai</b>", label_style), Paragraph("<b>Diagram Progress Hafalan</b>", label_style)],
+                    [d_pie, d_bar]
+                ]
+                chart_table = Table(chart_table_data, colWidths=[250, 250])
+                chart_table.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
+                elements.append(chart_table)
+                elements.append(Spacer(1, 15))
+
             except: pass
 
+        # --- TABEL DETAIL ---
+        elements.append(Paragraph("<b>Detail Setoran Hafalan:</b>", label_style))
+        elements.append(Spacer(1, 5))
+        
         data = [["No", "Tanggal", "Nama Siswa", "Surah", "Juz", "Ayat", "Jenis", "Nilai", "Catatan"]]
-        for idx, h in enumerate(queryset, 1):
+        for idx, h in enumerate(data_list, 1):
             data.append([idx, h.tanggal.strftime('%d/%m/%y'), h.siswa.first_name, h.surah, h.juz, h.ayat, h.jenis_setoran, h.nilai, Paragraph(h.catatan or "-", value_style)])
 
         main_table = Table(data, colWidths=[20, 55, 70, 70, 25, 55, 60, 30, 145])
@@ -239,106 +326,51 @@ class LaporanViewSet(viewsets.ViewSet):
         buffer.seek(0)
         return FileResponse(buffer, as_attachment=True, filename=f'Laporan_Mutabaah_{date.today()}.pdf')
 
-# --- LOGIKA MENU BERANDA (CHART DIAGRAM) ---
+# --- LOGIKA MENU BERANDA ---
 class DashboardViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
-
     @action(detail=False, methods=['get'])
     def summary(self, request):
-        # 1. Kartu Statistik
         total_siswa = User.objects.filter(role='WALI_MURID').count()
         total_musyif = User.objects.filter(role='MUSYIF').count()
         total_kelas = Kelas.objects.count()
+        best_progress = SetorHafalan.objects.values('siswa__first_name', 'siswa__last_name').annotate(total_surah=Count('surah', distinct=True)).order_by('-total_surah').first()
+        top_student = f"{best_progress['siswa__first_name']} {best_progress['siswa__last_name']}" if best_progress else "-"
+        top_count = best_progress['total_surah'] if best_progress else 0
 
-        best_progress = SetorHafalan.objects.values('siswa__first_name', 'siswa__last_name') \
-            .annotate(total_surah=Count('surah', distinct=True)) \
-            .order_by('-total_surah').first()
-        
-        top_student = "-"
-        top_count = 0
-        if best_progress:
-            top_student = f"{best_progress['siswa__first_name']} {best_progress['siswa__last_name']}"
-            top_count = best_progress['total_surah']
-
-        # 2. Logika Diagram (Privacy & Periode)
         periode = request.query_params.get('periode', 'Mingguan')
         today = date.today()
-        
-        if request.user.role == 'WALI_MURID':
-            base_qs_total = SetorHafalan.objects.filter(siswa=request.user)
-        else:
-            base_qs_total = SetorHafalan.objects.all()
+        base_qs = SetorHafalan.objects.filter(siswa=request.user) if request.user.role == 'WALI_MURID' else SetorHafalan.objects.all()
 
-        # A. Data Diagram Nilai
-        nilai_counts = base_qs_total.values('nilai').annotate(count=Count('id'))
-        mapping_nilai = {'A': 0, 'B': 0, 'C': 0, 'D': 0}
-        for item in nilai_counts:
-            if item['nilai'] in mapping_nilai:
-                mapping_nilai[item['nilai']] = item['count']
-        diagram_nilai = [mapping_nilai['A'], mapping_nilai['B'], mapping_nilai['C'], mapping_nilai['D']]
+        n_counts = base_qs.values('nilai').annotate(c=Count('id'))
+        m_n = {'A': 0, 'B': 0, 'C': 0, 'D': 0}
+        for item in n_counts:
+            if item['nilai'] in m_n: m_n[item['nilai']] = item['c']
+        d_nilai = [m_n['A'], m_n['B'], m_n['C'], m_n['D']]
 
-        # B. Data Diagram Progress Hafalan (LOGIKA BARU)
-        diagram_progress = []
-        labels_progress = []
-
+        l_p, d_p = [], []
         if periode == 'Mingguan':
-            # Label hari Senin-Minggu berdasarkan 7 hari terakhir
-            day_map = {
-                "Monday": "Senin", "Tuesday": "Selasa", "Wednesday": "Rabu",
-                "Thursday": "Kamis", "Friday": "Jumat", "Saturday": "Sabtu", "Sunday": "Minggu"
-            }
-            # Ambil data 7 hari terakhir
+            day_map = {"Monday":"Senin", "Tuesday":"Selasa", "Wednesday":"Rabu", "Thursday":"Kamis", "Friday":"Jumat", "Saturday":"Sabtu", "Sunday":"Minggu"}
             for i in range(6, -1, -1):
-                target_date = today - timedelta(days=i)
-                day_name = day_map[target_date.strftime('%A')]
-                labels_progress.append(day_name)
-                
-                # Hitung kumulatif distinct surah sampai tanggal tersebut
-                count = base_qs_total.filter(tanggal__lte=target_date).values('surah').distinct().count()
-                diagram_progress.append(count)
-
+                t_d = today - timedelta(days=i)
+                l_p.append(day_map.get(t_d.strftime('%A')))
+                d_p.append(base_qs.filter(tanggal__lte=t_d).values('surah').distinct().count())
         elif periode == 'Bulanan':
-            # Label Minggu 1 - Minggu 4
             for i in range(3, -1, -1):
-                labels_progress.append(f"Minggu {4-i}")
-                # Setiap minggu dihitung per 7 hari
-                target_date = today - timedelta(days=i*7)
-                count = base_qs_total.filter(tanggal__lte=target_date).values('surah').distinct().count()
-                diagram_progress.append(count)
-
+                l_p.append(f"Minggu {4-i}")
+                t_d = today - timedelta(days=i*7)
+                d_p.append(base_qs.filter(tanggal__lte=t_d).values('surah').distinct().count())
         elif periode == 'Semester':
-            # Label 6 Bulan Terakhir (Nama Bulan)
-            month_map = {
-                1:"Januari", 2:"Februari", 3:"Maret", 4:"April", 5:"Mei", 6:"Juni", 
-                7:"Juli", 8:"Agustus", 9:"September", 10:"Oktober", 11:"November", 12:"Desember"
-            }
+            month_map = {1:"Januari", 2:"Februari", 3:"Maret", 4:"April", 5:"Mei", 6:"Juni", 7:"Juli", 8:"Agustus", 9:"September", 10:"Oktober", 11:"November", 12:"Desember"}
             for i in range(5, -1, -1):
-                # Hitung tahun dan bulan mundur
                 m = today.month - i
                 y = today.year
-                if m <= 0:
-                    m += 12
-                    y -= 1
-                
-                labels_progress.append(month_map[m])
-                # Filter sampai akhir bulan tersebut
-                if m == 12:
-                    last_day_of_month = date(y, 12, 31)
-                else:
-                    last_day_of_month = date(y, m+1, 1) - timedelta(days=1)
-                
-                count = base_qs_total.filter(tanggal__lte=last_day_of_month).values('surah').distinct().count()
-                diagram_progress.append(count)
+                if m <= 0: m += 12; y -= 1
+                l_p.append(month_map[m])
+                last_d = date(y, m+1, 1) - timedelta(days=1) if m < 12 else date(y, 12, 31)
+                d_p.append(base_qs.filter(tanggal__lte=last_d).values('surah').distinct().count())
 
         return Response({
-            "cards": {
-                "total_siswa": total_siswa,
-                "total_musyif": total_musyif,
-                "total_kelas": total_kelas,
-                "best_student": {"name": top_student, "count": f"{top_count} Surah"}
-            },
-            "charts": {
-                "nilai": diagram_nilai,
-                "progress": {"labels": labels_progress, "data": diagram_progress}
-            }
+            "cards": {"total_siswa": total_siswa, "total_musyif": total_musyif, "total_kelas": total_kelas, "best_student": {"name": top_student, "count": f"{top_count} Surah"}},
+            "charts": {"nilai": d_nilai, "progress": {"labels": l_p, "data": d_p}}
         })

@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     MyTokenObtainPairView, ProfileView, ChangePasswordView, 
     UserManagementViewSet, MusyifViewSet, MusyifImportExcelView,
-    SiswaViewSet, SiswaImportExcelView
+    SiswaViewSet, SiswaImportExcelView, UserImportExcelView
 )
 
 router = DefaultRouter()
@@ -17,5 +17,6 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('musyif/import/', MusyifImportExcelView.as_view(), name='musyif-import-excel'),
     path('siswa/import/', SiswaImportExcelView.as_view(), name='siswa-import-excel'),
+    path('users/import/', UserImportExcelView.as_view(), name='user-import-excel'),
     path('', include(router.urls)),
 ]

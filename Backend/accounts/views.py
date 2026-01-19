@@ -15,6 +15,10 @@ from .serializers import (
 
 User = get_user_model()
 
+class IsAdminOrMusyif(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role in ['ADMIN', 'MUSYIF'])
+
 class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.role == 'ADMIN')
@@ -58,11 +62,50 @@ class UserManagementViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['username', 'first_name', 'last_name', 'email', 'role']
 
+class UserImportExcelView(generics.CreateAPIView):
+    permission_classes = [IsAdminRole]
+    parser_classes = (MultiPartParser,)
+
+    def post(self, request, *args, **kwargs):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({"error": "Pilih file excel terlebih dahulu!"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            df = pd.read_excel(file)
+            count = 0
+            for _, row in df.iterrows():
+                username = str(row['username'])
+                # Cek jika user sudah ada
+                if not User.objects.filter(username=username).exists():
+                    role = str(row.get('role', 'WALI_MURID')).upper()
+                    password = str(row.get('password', username))
+                    
+                    user = User.objects.create_user(
+                        username=username,
+                        first_name=row.get('first_name', ''),
+                        last_name=row.get('last_name', ''),
+                        email=row.get('email', ''),
+                        phone_number=str(row.get('phone_number', '')),
+                        role=role,
+                        password=password
+                    )
+                    
+                    # Sinkronisasi NIP/NISN berdasarkan role
+                    if role == 'MUSYIF': user.nip = username
+                    elif role == 'WALI_MURID': user.nisn = username
+                    user.save()
+                    
+                    count += 1
+            return Response({"message": f"Berhasil mengimport {count} user baru."}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # --- LOGIC CRUD DATA MUSYIF (FILTER KELAS) ---
 class MusyifViewSet(viewsets.ModelViewSet):
     queryset = User.objects.filter(role='MUSYIF').order_by('-id')
     serializer_class = MusyifSerializer
-    permission_classes = [IsAdminRole]
+    permission_classes = [IsAdminOrMusyif]
     filter_backends = [filters.SearchFilter]
     search_fields = ['first_name', 'last_name', 'nip']
 
@@ -100,7 +143,7 @@ class MusyifImportExcelView(generics.CreateAPIView):
 class SiswaViewSet(viewsets.ModelViewSet):
     queryset = User.objects.filter(role='WALI_MURID').order_by('first_name')
     serializer_class = SiswaSerializer
-    permission_classes = [IsAdminRole]
+    permission_classes = [IsAdminOrMusyif]
     filter_backends = [filters.SearchFilter]
     search_fields = ['first_name', 'last_name', 'nisn', 'kelas']
 
@@ -112,7 +155,7 @@ class SiswaViewSet(viewsets.ModelViewSet):
         return queryset
 
 class SiswaImportExcelView(generics.CreateAPIView):
-    permission_classes = [IsAdminRole]
+    permission_classes = [IsAdminOrMusyif]
     parser_classes = (MultiPartParser,)
     def post(self, request, *args, **kwargs):
         file = request.FILES.get('file')

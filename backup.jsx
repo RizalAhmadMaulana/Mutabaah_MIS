@@ -167,166 +167,161 @@ const QURAN_DATA = [
   { name: "An-Nas", juz: "30", total: 6 },
 ];
 
+12345678, 89676440508
 
-// SIDEBAR
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import LogoutModal from "../molecules/LogoutModal";
+import axios from "axios";
+import DashboardLayout from "../components/templates/DashboardLayout";
+import StatCard from "../components/atoms/StatCard";
+import WelcomeModal from "../components/molecules/WelcomeModal";
+import { Doughnut, Bar } from "react-chartjs-2";
 import { 
-  BiHome, BiBarChartSquare, BiCheckSquare, BiLayer, 
-  BiCog, BiChevronDown, BiUser, BiIdCard, BiGroup, BiLogOut 
-} from "react-icons/bi";
-import logoMIS from "../../assets/logo.png"; 
+  Chart as ChartJS, 
+  ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement 
+} from "chart.js";
 
-const Sidebar = ({ isCollapsed, isActive }) => {
-  const [isInputDataOpen, setInputDataOpen] = useState(true);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+
+const BerandaPage = () => {
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [periode, setPeriode] = useState("Mingguan");
+  const [loading, setLoading] = useState(true);
   
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [data, setData] = useState({
+    cards: {
+      total_siswa: 0, total_musyif: 0, total_kelas: 0,
+      best_student: { name: "-", count: "0 Surah" }
+    },
+    charts: {
+      nilai: [0, 0, 0, 0],
+      progress: { labels: [], data: [] }
+    }
+  });
 
-  const userData = JSON.parse(localStorage.getItem("user")) || { role: "" };
-  const userRole = userData.role;
-
-  useEffect(() => {
-    if (isCollapsed) setInputDataOpen(false);
-  }, [isCollapsed]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setShowLogoutModal(false);
-    navigate("/"); 
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`http://127.0.0.1:8000/api/academic/dashboard/summary/?periode=${periode}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setData(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Gagal load dashboard", err);
+      setLoading(false);
+    }
   };
 
-  const menuItems = [
-    { path: "/beranda", label: "Beranda", icon: BiHome, roles: ["ADMIN", "MUSYIF", "WALI_MURID"] },
-    { path: "/laporan-progress", label: "Laporan Progress", icon: BiBarChartSquare, roles: ["ADMIN", "MUSYIF", "WALI_MURID"] },
-    { path: "/setor-hafalan", label: "Setor Hafalan", icon: BiCheckSquare, roles: ["ADMIN", "MUSYIF"] },
-  ];
+  useEffect(() => {
+    // 1. Ambil data user dari localStorage
+    const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+    
+    /** * 2. LOGIKA BARU: Tampilkan modal JIKA:
+     * - Password masih default (is_default === true)
+     * - DAN Profil belum lengkap (is_profile_complete === false)
+     * - DAN Modal belum di-dismiss di sesi ini
+     */
+    if (storedUser.is_default === true && 
+        storedUser.is_profile_complete === false && 
+        !sessionStorage.getItem("welcome_dismissed")) {
+      setShowWelcome(true);
+    }
 
-  const subItems = [
-    { path: "/data-musyif", label: "Data Musyif", icon: BiUser },
-    { path: "/data-siswa", label: "Data Siswa", icon: BiIdCard },
-  ];
+    fetchDashboardData();
+  }, [periode]);
+
+  // Fungsi untuk menutup modal sementara
+  const handleCloseWelcome = () => {
+    setShowWelcome(false);
+    // Simpan ke sessionStorage supaya modal tidak muncul lagi di tab yang sama selama sesi aktif
+    sessionStorage.setItem("welcome_dismissed", "true");
+  };
+
+  // --- Konfigurasi Chart Data ---
+  const doughnutData = {
+    labels: ['A - Sangat Baik', 'B - Baik', 'C - Cukup', 'D - Kurang'],
+    datasets: [{
+      data: data.charts.nilai,
+      backgroundColor: ['#22C55E', '#3b82f6', '#fbbf24', '#f87171'],
+      borderWidth: 0
+    }]
+  };
+
+  const barData = {
+    labels: data.charts.progress.labels,
+    datasets: [{
+      label: 'Jumlah Hafalan (Surah)',
+      data: data.charts.progress.data,
+      backgroundColor: '#3B82F6',
+      borderRadius: 5,
+    }]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  };
 
   return (
-    <>
-      <aside className={`fixed top-0 left-0 h-full bg-[#1B4332] text-white transition-all duration-300 z-[1050] flex flex-col shadow-xl
-        ${isCollapsed ? "w-[80px]" : "w-[260px]"}
-        ${isActive ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
-        
-        {/* LOGO SECTION */}
-        <div className={`flex items-center gap-3 px-5 py-7 border-b border-white/10 ${isCollapsed ? "justify-center" : ""}`}>
-          <img src={logoMIS} alt="Logo MIS" className="w-10 h-10 object-contain shrink-0" />
-          <div className={`transition-opacity duration-300 ${isCollapsed ? "hidden opacity-0" : "block opacity-100"}`}>
-            <h1 className="text-[1.1rem] font-bold leading-tight tracking-tight whitespace-nowrap">MUTABAAH DIGITAL</h1>
-            <p className="text-[0.65rem] text-white/70 font-medium tracking-widest uppercase">MIS DARUL ULUM</p>
+    <DashboardLayout title="Beranda">
+      {/* WelcomeModal muncul untuk semua user tanpa filter */}
+      {showWelcome && <WelcomeModal onClose={handleCloseWelcome} />}
+
+      {/* GRID KARTU STATISTIK */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard title="Total Siswa" value={`${data.cards.total_siswa} Siswa`} bgColor="#4A90E2" />
+        <StatCard title="Total Musyif" value={`${data.cards.total_musyif} Musyif`} bgColor="#9B51E0" />
+        <StatCard title="Total Kelas" value={`${data.cards.total_kelas} kelas`} bgColor="#F2994A" />
+        <StatCard 
+          title="Progress Terbaik" 
+          value={
+            <div className="flex flex-col items-center">
+              <span className="text-[1.4rem] leading-tight">{data.cards.best_student.name}</span>
+              <span className="text-[1.1rem]">({data.cards.best_student.count})</span>
+            </div>
+          } 
+          bgColor="#27AE60"
+        />
+      </div>
+
+      {/* FILTER PERIODE */}
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 w-full">
+        <div className="bg-[#3B82F6] text-white p-3 text-[1.1rem] font-[600] text-left px-4">
+          Pilih Periode Statistik
+        </div>
+        <select 
+          className="w-full p-3 bg-[#E5E7EB] border-none outline-none text-[#1a1a1a] font-medium cursor-pointer appearance-none"
+          value={periode}
+          onChange={(e) => setPeriode(e.target.value)}
+          style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
+        >
+          <option value="Mingguan">Mingguan</option>
+          <option value="Bulanan">Bulanan</option>
+          <option value="Semester">Semester (6 Bulan)</option>
+        </select>
+      </div>
+
+      {/* DIAGRAM GRAFIK */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+        <div className="bg-white rounded-lg overflow-hidden shadow-sm flex flex-col h-[450px]">
+          <div className="bg-[#EF4444] text-white p-3 font-[600] text-[1.1rem] px-4">Diagram Grafik Nilai</div>
+          <div className="p-4 flex-1 flex items-center justify-center">
+            {loading ? <p className="text-slate-400">Memuat data...</p> : <Doughnut data={doughnutData} options={chartOptions} />}
           </div>
         </div>
 
-        {/* MENU NAVIGATION */}
-        <nav className="flex-1 mt-6 overflow-y-auto custom-scrollbar overflow-x-hidden">
-          {menuItems.filter(item => item.roles.includes(userRole)).map((item, index) => {
-            const isItemActive = location.pathname === item.path;
-            return (
-              <Link 
-                key={index} 
-                to={item.path} 
-                title={isCollapsed ? item.label : ""}
-                className={`flex items-center gap-3 px-5 py-3.5 transition-all duration-200 whitespace-nowrap border-l-[4px]
-                  ${isItemActive 
-                    ? "bg-black/15 text-white border-[#2ecc71] font-semibold" 
-                    : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"
-                  } ${isCollapsed ? "justify-center" : ""}`}
-              >
-                <item.icon className={`text-[1.35rem] shrink-0 ${isItemActive ? "text-[#2ecc71]" : ""}`} />
-                <span className={`text-[0.95rem] transition-all duration-300 ${isCollapsed ? "hidden absolute" : "block relative"}`}>
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
-
-          {/* DROP DOWN: INPUT DATA MASTER */}
-          {userRole === "ADMIN" && (
-            <div className="mt-1">
-              <button 
-                onClick={() => !isCollapsed && setInputDataOpen(!isInputDataOpen)}
-                className={`w-full flex items-center justify-between px-5 py-3.5 text-white/80 hover:bg-black/10 hover:text-white transition-colors border-l-[4px] border-transparent
-                  ${isCollapsed ? "justify-center" : ""} ${isInputDataOpen ? "bg-black/5" : ""}`}
-              >
-                <div className="flex items-center gap-3">
-                  <BiLayer className={`text-[1.35rem] shrink-0 ${subItems.some(s => s.path === location.pathname) ? "text-[#2ecc71]" : ""}`} />
-                  {!isCollapsed && <span className="text-[0.95rem] font-medium">Input Data Master</span>}
-                </div>
-                {!isCollapsed && (
-                  <BiChevronDown className={`text-xl transition-transform duration-300 ${isInputDataOpen ? "rotate-180" : ""}`} />
-                )}
-              </button>
-
-              {isInputDataOpen && !isCollapsed && (
-                <div className="bg-black/10 py-1">
-                  {subItems.map((sub, idx) => {
-                    const isSubActive = location.pathname === sub.path;
-                    return (
-                      <Link 
-                        key={idx} 
-                        to={sub.path} 
-                        className={`flex items-center gap-3 pl-10 pr-5 py-3 text-[0.9rem] transition-all duration-200 border-l-[4px]
-                          ${isSubActive 
-                            ? "bg-white/10 text-white border-[#2ecc71] font-semibold" 
-                            : "text-white/70 hover:text-white hover:bg-white/5 border-transparent"
-                          }`}
-                      >
-                        <sub.icon className={`text-[1.1rem] shrink-0 ${isSubActive ? "text-[#2ecc71]" : ""}`} /> 
-                        {sub.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* MANAGEMENT USER */}
-          {userRole === "ADMIN" && (
-            <Link 
-              to="/management-user" 
-              title={isCollapsed ? "Management User" : ""} 
-              className={`flex items-center gap-3 px-5 py-3.5 transition-all duration-200 whitespace-nowrap border-l-[4px]
-                ${location.pathname === "/management-user"
-                  ? "bg-black/15 text-white border-[#2ecc71] font-semibold"
-                  : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"
-                } ${isCollapsed ? "justify-center" : ""}`}
-            >
-              <BiGroup className={`text-[1.35rem] shrink-0 ${location.pathname === "/management-user" ? "text-[#2ecc71]" : ""}`} /> 
-              <span className={`text-[0.95rem] transition-all ${isCollapsed ? "hidden absolute" : "block relative"}`}>
-                Management User
-              </span>
-            </Link>
-          )}
-          
-          {/* LOGOUT SECTION */}
-          <div className="pt-4 mt-4 border-t border-white/10">
-             <button 
-               onClick={() => setShowLogoutModal(true)} 
-               className={`w-full flex items-center gap-3 px-5 py-3.5 transition-colors whitespace-nowrap text-left text-white/90 hover:text-[#EF4444] hover:bg-[#EF4444]/10 border-l-[4px] border-transparent ${isCollapsed ? "justify-center" : ""}`}
-             >
-               <BiLogOut className="text-[1.35rem] shrink-0" /> 
-               {!isCollapsed && <span className="text-[0.95rem] font-medium">Keluar Sistem</span>}
-             </button>
+        <div className="bg-white rounded-lg overflow-hidden shadow-sm flex flex-col h-[450px]">
+          <div className="bg-[#22C55E] text-white p-3 font-[600] text-[1.1rem] px-4">Diagram Progress Hafalan</div>
+          <div className="p-4 flex-1 flex items-center justify-center">
+            {loading ? <p className="text-slate-400">Memuat data...</p> : <Bar data={barData} options={chartOptions} />}
           </div>
-        </nav>
-      </aside>
-
-      <LogoutModal 
-        isOpen={showLogoutModal} 
-        onClose={() => setShowLogoutModal(false)} 
-        onConfirm={handleLogout} 
-      />
-    </>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
-export default Sidebar;
+export default BerandaPage;

@@ -82,7 +82,7 @@ const LaporanPage = () => {
       const { dari_tgl, sampai_tgl, kelas, siswa } = rekapFilter;
       const res = await axios.get(`http://127.0.0.1:8000/api/academic/laporan/rekap_data/?dari_tgl=${dari_tgl}&sampai_tgl=${sampai_tgl}&kelas=${kelas}&siswa=${siswa}`, { headers });
       setRekapData(res.data);
-    } catch (err) { console.error("Search failed:", err); }
+    } catch (err) { console.error(err); }
     finally { setLoadingRekap(false); }
   };
 
@@ -112,14 +112,14 @@ const LaporanPage = () => {
       const { kelas, siswa } = riwayatFilter;
       const res = await axios.get(`http://127.0.0.1:8000/api/academic/laporan/riwayat/?kelas=${kelas}&siswa=${siswa}&filter_waktu=${filterWaktu}`, { headers });
       setRiwayatData(res.data);
-    } catch (err) { console.error("Riwayat failed:", err); }
+    } catch (err) { console.error(err); }
     finally { setLoadingRiwayat(false); }
   };
 
   return (
     <DashboardLayout title="Laporan Progress">
       
-      {/* KARTU 1: REKAP LAPORAN */}
+      {/* SEKSI 1: REKAP LAPORAN */}
       <div className="bg-white rounded-[8px] p-4 sm:p-6 border-t-[5px] border-[#1B4332] shadow-sm mb-8">
         <div className="flex items-center gap-2 mb-6 text-[#1B4332] font-bold text-lg border-b pb-3">
           <BiBookContent className="text-2xl" /> REKAP LAPORAN
@@ -145,41 +145,21 @@ const LaporanPage = () => {
           />
         </div>
 
-        {/* Buttons: Sejajar (Horizontal) di HP & Desktop */}
+        {/* PERBAIKAN: Tombol Sejajar & Responsif */}
         <div className="flex flex-row gap-2 sm:gap-3 justify-center mb-8">
           <ActionButton 
-            label="Search Data" 
-            icon={BiSearch} 
-            variant="primary" 
+            label="Search Data" icon={BiSearch} variant="primary" 
             className="flex-1 sm:flex-none sm:w-auto px-2 sm:px-10 py-2.5 text-[0.75rem] sm:text-base whitespace-nowrap" 
             onClick={handleSearchRekap} 
           />
           <ActionButton 
-            label="Download PDF" 
-            icon={BiDownload} 
-            variant="primary" 
+            label="Download PDF" icon={BiDownload} variant="primary" 
             className="flex-1 sm:flex-none sm:w-auto px-2 sm:px-10 py-2.5 text-[0.75rem] sm:text-base whitespace-nowrap" 
             onClick={handleDownloadPDF} 
           />
         </div>
 
-        {rekapData.summary && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-[#f0fdf4] p-4 sm:p-5 rounded-xl border border-green-100 flex items-center gap-4 shadow-sm">
-               <div className="bg-green-500 p-3 rounded-lg text-white text-2xl"><BiCheckCircle /></div>
-               <div><div className="text-slate-500 text-xs sm:text-sm font-semibold">Total Hafalan</div><div className="text-lg sm:text-2xl font-bold text-slate-800">{rekapData.summary.total_hafalan}</div></div>
-            </div>
-            <div className="bg-[#f0f9ff] p-4 sm:p-5 rounded-xl border border-blue-100 flex items-center gap-4 shadow-sm">
-               <div className="bg-blue-500 p-3 rounded-lg text-white text-2xl"><BiTargetLock /></div>
-               <div><div className="text-slate-500 text-xs sm:text-sm font-semibold">Target Kelas</div><div className="text-lg sm:text-2xl font-bold text-slate-800">{rekapData.summary.target_hafalan}</div></div>
-            </div>
-            <div className={`p-4 sm:p-5 rounded-xl border flex items-center gap-4 shadow-sm ${rekapData.summary.status === 'Terpenuhi' ? 'bg-green-100 border-green-200' : 'bg-red-50 border-red-100'}`}>
-               <div className={`p-3 rounded-lg text-white text-2xl ${rekapData.summary.status === 'Terpenuhi' ? 'bg-green-600' : 'bg-red-500'}`}><BiBookContent /></div>
-               <div><div className="text-slate-500 text-xs sm:text-sm font-semibold">Status Capaian</div><div className={`text-base sm:text-xl font-bold ${rekapData.summary.status === 'Terpenuhi' ? 'text-green-700' : 'text-red-700'}`}>{rekapData.summary.status}</div></div>
-            </div>
-          </div>
-        )}
-
+        {/* Tabel Rekap... */}
         <div className="border border-black rounded-[4px] overflow-x-auto bg-white custom-scrollbar">
           <table className="w-full border-collapse min-w-[1100px]">
             <thead>
@@ -209,7 +189,7 @@ const LaporanPage = () => {
         </div>
       </div>
 
-      {/* KARTU 2: RIWAYAT TERBARU */}
+      {/* SEKSI 2: RIWAYAT TERBARU */}
       <div className="bg-white rounded-[8px] p-4 sm:p-6 border-t-[5px] border-[#1B4332] shadow-sm">
         <div className="flex items-center gap-2 mb-6 text-[#1B4332] font-bold text-lg border-b pb-3">
           <BiTimeFive className="text-2xl" /> RIWAYAT TERBARU
@@ -235,10 +215,26 @@ const LaporanPage = () => {
           </div>
         </div>
 
+        {/* PERBAIKAN: Desain Pill Button Filter Menarik */}
         <div className="flex flex-wrap justify-center gap-2 mb-6">
-          <ActionButton label="Hari Ini" variant="green" className="px-4 sm:px-6 py-2 text-xs sm:text-sm" onClick={() => handleSearchRiwayat("hari_ini")} />
-          <ActionButton label="Kemarin" variant="yellow" className="px-4 sm:px-6 py-2 text-xs sm:text-sm" onClick={() => handleSearchRiwayat("kemarin")} />
-          <ActionButton label="Semua" variant="blue" className="px-4 sm:px-6 py-2 text-xs sm:text-sm" onClick={() => handleSearchRiwayat("semua")} />
+          <button 
+            onClick={() => handleSearchRiwayat("hari_ini")} 
+            className="px-4 sm:px-6 py-2 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs sm:text-sm hover:bg-emerald-200 transition-all border border-emerald-200 shadow-sm"
+          >
+            Hari Ini
+          </button>
+          <button 
+            onClick={() => handleSearchRiwayat("kemarin")} 
+            className="px-4 sm:px-6 py-2 rounded-full bg-amber-100 text-amber-700 font-bold text-xs sm:text-sm hover:bg-amber-200 transition-all border border-amber-200 shadow-sm"
+          >
+            Kemarin
+          </button>
+          <button 
+            onClick={() => handleSearchRiwayat("semua")} 
+            className="px-4 sm:px-6 py-2 rounded-full bg-blue-100 text-blue-700 font-bold text-xs sm:text-sm hover:bg-blue-200 transition-all border border-blue-200 shadow-sm"
+          >
+            Semua
+          </button>
         </div>
 
         <div className="border border-black rounded-[4px] overflow-x-auto bg-white custom-scrollbar">

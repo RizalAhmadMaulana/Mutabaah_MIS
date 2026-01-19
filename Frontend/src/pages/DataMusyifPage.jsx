@@ -19,11 +19,14 @@ const DataMusyifPage = () => {
   const [selectedMusyif, setSelectedMusyif] = useState(null);
   const [tempFormData, setTempFormData] = useState(null);
 
+  // LOGIKA: State Pagination & Show Entries
+  const [currentPage, setCurrentPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+
   // LOGIKA: Fungsi ambil data musyif (Dengan Search Params)
   const fetchMusyifs = async () => {
     try {
       const token = localStorage.getItem("token");
-      // Gunakan query param ?search=
       const response = await axios.get(`http://127.0.0.1:8000/api/musyif/?search=${searchTerm}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -36,12 +39,22 @@ const DataMusyifPage = () => {
   };
 
   useEffect(() => {
-    // Debounce search agar tidak spam request
     const delayDebounceFn = setTimeout(() => {
       fetchMusyifs();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
+
+  // LOGIKA: Reset ke halaman 1 jika search atau entries berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, entriesPerPage]);
+
+  // LOGIKA: Hitung data yang tampil di halaman saat ini
+  const indexOfLastItem = currentPage * entriesPerPage;
+  const indexOfFirstItem = indexOfLastItem - entriesPerPage;
+  const currentItems = musyifs.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(musyifs.length / entriesPerPage);
 
   const handleRequestConfirm = (formData) => {
     setTempFormData(formData);
@@ -92,17 +105,17 @@ const DataMusyifPage = () => {
   const headers = ["#", "Nama Musyif", "Jenis Kelamin", "NIP", "Kelas Ampu", "Tempat, Tanggal Lahir", "No Telp Musyif", "Aksi"];
 
   const renderTableBody = () => {
-    const displayData = [...musyifs];
+    // Tampilkan data yang sudah di-slice berdasarkan show entries
+    const displayData = [...currentItems];
 
     return displayData.map((row, idx) => (
       <tr key={idx} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
         {row.id ? (
           <>
-            <td className="border border-black px-3 py-2.5 text-center h-[45px] whitespace-nowrap font-medium text-slate-700">{idx + 1}</td>
+            <td className="border border-black px-3 py-2.5 text-center h-[45px] whitespace-nowrap font-medium text-slate-700">{indexOfFirstItem + idx + 1}</td>
             <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{`${row.first_name} ${row.last_name}`}</td>
             <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.gender}</td>
             <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap font-mono">{row.nip || "-"}</td>
-            {/* LOGIKA: Menampilkan data kelas ampu yang diambil dari backend */}
             <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap font-bold text-slate-700">{row.kelas_ampu}</td>
             <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.birth_info || "-"}</td>
             <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.phone_number || "-"}</td>
@@ -165,21 +178,26 @@ const DataMusyifPage = () => {
         <div className="flex flex-row justify-between items-center gap-2 mb-5 text-sm font-[600] text-slate-700">
           <div className="flex items-center shrink-0">
             <span>Show</span>
-            <select className="mx-1.5 bg-[#f8fafc] border border-gray-300 rounded px-1 py-1 outline-none">
-                <option>10</option>
-                <option>25</option>
+            {/* LOGIKA: Menghubungkan Select ke entriesPerPage */}
+            <select 
+                value={entriesPerPage} 
+                onChange={(e) => setEntriesPerPage(Number(e.target.value))} 
+                className="mx-1.5 bg-[#f8fafc] border border-gray-300 rounded px-1 py-1 outline-none cursor-pointer"
+            >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
             </select> 
             <span className="hidden sm:inline">entries</span>
           </div>
           <div className="flex items-center justify-end w-[60%] sm:w-auto">
             <span className="mr-2 hidden sm:inline">Search:</span>
-            {/* Input Search yang terhubung ke State */}
             <input 
               type="text" 
               placeholder="Cari Nama / NIP..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-[200px] bg-white border border-gray-300 rounded px-3 py-1.5 outline-none font-normal text-sm" 
+              className="w-full sm:w-[200px] bg-white border border-gray-300 rounded px-3 py-1.5 outline-none font-normal text-sm focus:border-[#2ECC71]" 
             />
           </div>
         </div>
@@ -200,11 +218,26 @@ const DataMusyifPage = () => {
         </div>
 
         <div className="flex flex-row justify-between items-center text-[0.8rem] sm:text-[0.85rem] font-[600] mt-2">
-          <div className="text-slate-600">Showing {musyifs.length} entries</div>
+          {/* LOGIKA: Info Entries Dinamis */}
+          <div className="text-slate-600">
+            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, musyifs.length)} of {musyifs.length} entries
+          </div>
           <div className="flex border border-gray-300 rounded-[4px] overflow-hidden shadow-sm scale-90 sm:scale-100 origin-right">
-            <button className="px-2 sm:px-3 py-1 bg-white border-r border-gray-300">Prev</button>
-            <button className="px-2 sm:px-3 py-1 bg-[#007BFF] text-white border-r border-gray-300 font-bold">1</button>
-            <button className="px-2 sm:px-3 py-1 bg-white">Next</button>
+            <button 
+              disabled={currentPage === 1} 
+              onClick={() => setCurrentPage(prev => prev - 1)} 
+              className="px-2 sm:px-3 py-1 bg-white border-r border-gray-300 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            >
+                Prev
+            </button>
+            <button className="px-2 sm:px-3 py-1 bg-[#007BFF] text-white border-r border-gray-300 font-bold">{currentPage}</button>
+            <button 
+              disabled={currentPage === totalPages || totalPages === 0} 
+              onClick={() => setCurrentPage(prev => prev + 1)} 
+              className="px-2 sm:px-3 py-1 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            >
+                Next
+            </button>
           </div>
         </div>
       </div>

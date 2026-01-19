@@ -43,14 +43,25 @@ const BerandaPage = () => {
   };
 
   useEffect(() => {
-    const isFirstTime = !localStorage.getItem("welcome_shown");
-    if (isFirstTime) {
+    /** * LOGIKA BARU:
+     * Tampilkan modal untuk SEMUA user tanpa filter status akun (is_default/is_profile_complete).
+     * Modal hanya akan muncul jika belum pernah di-dismiss (ditutup) di sesi browser ini.
+     */
+    if (!sessionStorage.getItem("welcome_dismissed")) {
       setShowWelcome(true);
-      localStorage.setItem("welcome_shown", "true");
     }
+
     fetchDashboardData();
   }, [periode]);
 
+  // Fungsi untuk menutup modal sementara
+  const handleCloseWelcome = () => {
+    setShowWelcome(false);
+    // Simpan status ke sessionStorage agar tidak muncul lagi selama tab/sesi masih aktif
+    sessionStorage.setItem("welcome_dismissed", "true");
+  };
+
+  // --- Konfigurasi Chart Data ---
   const doughnutData = {
     labels: ['A - Sangat Baik', 'B - Baik', 'C - Cukup', 'D - Kurang'],
     datasets: [{
@@ -65,7 +76,7 @@ const BerandaPage = () => {
     datasets: [{
       label: 'Jumlah Hafalan (Surah)',
       data: data.charts.progress.data,
-      backgroundColor: '#3B82F6', // Mengikuti warna bar di desain awal
+      backgroundColor: '#3B82F6',
       borderRadius: 5,
     }]
   };
@@ -74,17 +85,13 @@ const BerandaPage = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: { legend: { position: 'bottom' } },
-    scales: {
-        y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1 }
-        }
-    }
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
   };
 
   return (
     <DashboardLayout title="Beranda">
-      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+      {/* WelcomeModal kini muncul untuk semua role tanpa filter */}
+      {showWelcome && <WelcomeModal onClose={handleCloseWelcome} />}
 
       {/* GRID KARTU STATISTIK */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -99,11 +106,11 @@ const BerandaPage = () => {
               <span className="text-[1.1rem]">({data.cards.best_student.count})</span>
             </div>
           } 
-          bgColor="#27AE60" // Hijau sesuai desain awal Progress Terbaik
+          bgColor="#27AE60"
         />
       </div>
 
-      {/* FILTER PERIODE - Diperbaiki sesuai desain awal (Warna Biru & Full Width) */}
+      {/* FILTER PERIODE */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 w-full">
         <div className="bg-[#3B82F6] text-white p-3 text-[1.1rem] font-[600] text-left px-4">
           Pilih Periode Statistik

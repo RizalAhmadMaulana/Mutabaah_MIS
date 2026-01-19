@@ -18,6 +18,14 @@ const KelolaKelasPage = () => {
   const [selectedKelas, setSelectedKelas] = useState(null);
   const [tempFormData, setTempFormData] = useState(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+
+  const indexOfLastItem = currentPage * entriesPerPage;
+  const indexOfFirstItem = indexOfLastItem - entriesPerPage;
+  const currentItems = kelasData.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(kelasData.length / entriesPerPage);
+
   const fetchKelas = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -97,13 +105,13 @@ const KelolaKelasPage = () => {
       );
     }
 
-    return kelasData.map((row, idx) => (
+    return currentItems.map((row, idx) => (
       <tr key={row.id} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
-        <td className="border border-black px-3 py-2.5 text-center h-[45px] whitespace-nowrap font-medium text-slate-700">{idx + 1}</td>
-        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap font-bold">{row.nama_kelas}</td>
-        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.nama_musyif || "-"}</td>
-        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.target_hafalan || "-"}</td>
-        <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">
+        <td className="border border-black px-3 py-2.5 text-center font-medium">{indexOfFirstItem + idx + 1}</td>
+        <td className="border border-black px-3 py-2.5 text-center font-bold">{row.nama_kelas}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.nama_musyif || "-"}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.target_hafalan || "-"}</td>
+        <td className="border border-black px-3 py-2.5 text-center">
           <div className="flex gap-2 justify-center items-center">
             <button 
               onClick={() => { setSelectedKelas(row); setActiveModal('edit'); }}
@@ -179,22 +187,13 @@ const KelolaKelasPage = () => {
         <div className="flex flex-row justify-between items-center gap-2 mb-5 text-sm font-[600] text-slate-700">
           <div className="flex items-center shrink-0">
             <span>Show</span>
-            <select className="mx-1.5 bg-[#f8fafc] border border-gray-300 rounded px-1 py-1 outline-none focus:border-[#2ECC71] cursor-pointer">
-                <option>10</option>
-                <option>25</option>
+            <select value={entriesPerPage} onChange={(e) => setEntriesPerPage(Number(e.target.value))} className="mx-1.5 bg-[#f8fafc] border border-gray-300 rounded px-1 py-1 outline-none">
+                <option value={10}>10</option>
+                <option value={25}>25</option>
             </select> 
-            <span className="hidden sm:inline">entries</span>
+            <span>entries</span>
           </div>
-          <div className="flex items-center justify-end w-[60%] sm:w-auto">
-            <span className="mr-2 hidden sm:inline">Search:</span>
-            <input 
-                type="text" 
-                placeholder="Cari Kelas / Musyif..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-[200px] bg-white border border-gray-300 rounded px-3 py-1.5 outline-none font-normal focus:border-[#2ECC71] transition-all text-sm" 
-            />
-          </div>
+          <input type="text" placeholder="Cari kelas/musyif" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-[150px] sm:w-[200px] border border-gray-300 rounded px-3 py-1.5 outline-none text-sm" />
         </div>
 
         <div className="border border-black rounded-[4px] overflow-x-auto bg-white mb-4 custom-scrollbar">
@@ -214,12 +213,22 @@ const KelolaKelasPage = () => {
           </table>
         </div>
 
-        <div className="flex flex-row justify-between items-center text-[0.8rem] sm:text-[0.85rem] font-[600] mt-2">
-          <div className="text-slate-600">Showing {kelasData.length} entries</div>
-          <div className="flex border border-gray-300 rounded-[4px] overflow-hidden shadow-sm scale-90 sm:scale-100 origin-right">
-            <button className="px-2 sm:px-3 py-1 bg-white hover:bg-gray-50 border-r border-gray-300 transition-colors text-slate-600 disabled:opacity-50">Prev</button>
-            <button className="px-2 sm:px-3 py-1 bg-[#007BFF] text-white border-r border-gray-300 font-bold">1</button>
-            <button className="px-2 sm:px-3 py-1 bg-white hover:bg-gray-50 transition-colors text-slate-600">Next</button>
+        <div className="flex flex-row justify-between items-center text-[0.85rem] font-[600]">
+          <div className="text-slate-600">
+            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, kelasData.length)} of {kelasData.length} entries
+          </div>
+          <div className="flex border border-gray-300 rounded overflow-hidden">
+            <button 
+              disabled={currentPage === 1} 
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              className="px-3 py-1 bg-white hover:bg-gray-50 disabled:opacity-50 border-r"
+            >Prev</button>
+            <div className="px-4 py-1 bg-[#007BFF] text-white font-bold">{currentPage}</div>
+            <button 
+              disabled={currentPage === totalPages || totalPages === 0} 
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className="px-3 py-1 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >Next</button>
           </div>
         </div>
       </div>

@@ -28,7 +28,9 @@ const LoginPage = () => {
       localStorage.setItem("user", JSON.stringify({
         username: response.data.username,
         role: response.data.role, // ADMIN, MUSYIF, atau WALI_MURID
-        name: response.data.name
+        name: response.data.name,
+        is_default: response.data.is_default,
+        is_profile_complete: response.data.is_profile_complete
       }));
 
       navigate("/beranda");

@@ -8,25 +8,24 @@ User = get_user_model()
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
-        data['username'] = self.user.username
-        data['role'] = self.user.role
-        data['name'] = f"{self.user.first_name} {self.user.last_name}"
+        user = self.user
+        data['username'] = user.username
+        data['role'] = user.role
+        data['name'] = f"{user.first_name} {user.last_name}"
+        
+        # 1. LOGIKA: Cek apakah password masih default (sama dengan username)
+        data['is_default'] = user.check_password(user.username)
+        
+        # 2. LOGIKA: Cek apakah profil sudah lengkap
+        # Dianggap lengkap jika Email, No HP, Jenis Kelamin, dan Info Lahir sudah terisi
+        data['is_profile_complete'] = all([
+            user.email, 
+            user.phone_number, 
+            user.gender, 
+            user.birth_info
+        ])
+        
         return data
-
-class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True)
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'profile_photo', 'gender', 'nip', 'birth_info', 'nisn', 'kelas')
-        read_only_fields = ('username', 'role')
-
-class UpdateProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('first_name', 'last_name', 'email', 'phone_number', 'profile_photo')
 
 # --- LOGIKA SINKRONISASI TOTAL: Management User ---
 class ManagementUserSerializer(serializers.ModelSerializer):
@@ -87,13 +86,10 @@ class MusyifSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'first_name', 'last_name', 'gender', 'nip', 'birth_info', 'phone_number', 'email', 'kelas_ampu')
     
-    # LOGIKA BARU: Mengambil data kelas dari relasi 'kelas_diampu' (defined in academic.models)
     def get_kelas_ampu(self, obj):
         try:
-            # Mengambil semua kelas yang terkait dengan musyif ini
             kelasList = obj.kelas_diampu.all()
             if kelasList.exists():
-                # Menggabungkan nama kelas menjadi string (contoh: "1 A, 2 B")
                 return ", ".join([k.nama_kelas for k in kelasList])
             return "-"
         except AttributeError:
@@ -135,3 +131,18 @@ class SiswaSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items(): setattr(instance, attr, value)
         instance.save()
         return instance
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'profile_photo', 'gender', 'nip', 'birth_info', 'nisn', 'kelas')
+        read_only_fields = ('username', 'role')
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'email', 'phone_number', 'profile_photo')
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)

@@ -18,6 +18,17 @@ const DataSiswaPage = () => {
   const [selectedSiswa, setSelectedSiswa] = useState(null);
   const [tempFormData, setTempFormData] = useState(null);
 
+  // LOGIKA PAGINATION & SHOW ENTRIES
+    const [currentPage, setCurrentPage] = useState(1);
+    const [entriesPerPage, setEntriesPerPage] = useState(10);
+
+    useEffect(() => { setCurrentPage(1); }, [searchTerm, entriesPerPage]);
+    
+      const indexOfLastItem = currentPage * entriesPerPage;
+      const indexOfFirstItem = indexOfLastItem - entriesPerPage;
+      const currentItems = siswa.slice(indexOfFirstItem, indexOfLastItem);
+      const totalPages = Math.ceil(siswa.length / entriesPerPage);
+
   // LOGIKA: Fungsi ambil data dari Backend (Mendukung Fitur Search)
   const fetchSiswa = async () => {
     try {
@@ -93,41 +104,33 @@ const DataSiswaPage = () => {
   const headers = ["#", "Nama Siswa", "Jenis Kelamin", "NISN", "Kelas", "Tempat, Tanggal Lahir", "No Telp Orangtua", "Aksi"];
   
   const renderTableBody = () => {
-    // Tampilkan data asli, jika kurang dari 10 tampilkan mockup kosong agar desain tetap rapi
-    const displayData = [...siswa];
 
-    return displayData.map((row, idx) => (
-      <tr key={idx} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
-        {row.id ? (
-          <>
-            <td className="border border-black px-3 py-2.5 text-center h-[45px] whitespace-nowrap font-medium text-slate-700">{idx + 1}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{`${row.first_name} ${row.last_name}`}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.gender}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap font-mono">{row.nisn}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.kelas}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.birth_info}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">{row.phone_number}</td>
-            <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">
-              <div className="flex gap-2 justify-center items-center">
-                <button 
-                  onClick={() => { setSelectedSiswa(row); setActiveModal('edit'); }}
-                  className="bg-[#2ECC71] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#27ae60] transition-all"
-                >
-                  <BiPencil className="text-[1rem]" /> Edit
-                </button>
-                <button 
-                  onClick={() => handleOpenDelete(row)}
-                  className="bg-[#E74C3C] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#c0392b] transition-all"
-                >
-                  <BiTrash className="text-[1rem]" /> Hapus
-                </button>
-              </div>
-            </td>
-          </>
-        ) : (
-          headers.map((_, cIdx) => <td key={cIdx} className="border border-black px-2 py-2 h-[45px]">&nbsp;</td>)
-        )}
-      </tr>
+    return currentItems.map((row, idx) => (
+      <tr key={row.id} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
+        <td className="border border-black px-3 py-2.5 text-center font-medium">{indexOfFirstItem + idx + 1}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.first_name} {row.last_name}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.gender}</td>
+        <td className="border border-black px-3 py-2.5 text-center font-mono">{row.nisn}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.kelas}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.birth_info}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.phone_number}</td>
+        <td className="border border-black px-3 py-2.5 text-center">
+            <div className="flex gap-2 justify-center items-center">
+              <button 
+                onClick={() => { setSelectedSiswa(row); setActiveModal('edit'); }}
+                className="bg-[#2ECC71] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#27ae60] transition-all"
+              >
+                <BiPencil className="text-[1rem]" /> Edit
+              </button>
+              <button 
+                onClick={() => handleOpenDelete(row)}
+                className="bg-[#E74C3C] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#c0392b] transition-all"
+              >
+                <BiTrash className="text-[1rem]" /> Hapus
+              </button>
+            </div>
+        </td>
+    </tr>
     ));
   };
 
@@ -167,23 +170,13 @@ const DataSiswaPage = () => {
         <div className="flex flex-row justify-between items-center gap-2 mb-5 text-sm font-[600] text-slate-700">
           <div className="flex items-center shrink-0">
             <span>Show</span>
-            <select className="mx-1.5 bg-[#f8fafc] border border-gray-300 rounded px-1 py-1 outline-none">
-                <option>10</option>
-                <option>25</option>
+            <select value={entriesPerPage} onChange={(e) => setEntriesPerPage(Number(e.target.value))} className="mx-1.5 bg-[#f8fafc] border border-gray-300 rounded px-1 py-1 outline-none">
+                <option value={10}>10</option>
+                <option value={25}>25</option>
             </select> 
-            <span className="hidden sm:inline">entries</span>
+            <span>entries</span>
           </div>
-          <div className="flex items-center justify-end w-[60%] sm:w-auto">
-            <span className="mr-2 hidden sm:inline">Search:</span>
-            {/* LOGIKA: Input Search Terhubung ke searchTerm */}
-            <input 
-              type="text" 
-              placeholder="Cari Nama atau NISN..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-[200px] bg-white border border-gray-300 rounded px-3 py-1.5 outline-none font-normal text-sm focus:border-[#2ECC71]" 
-            />
-          </div>
+          <input type="text" placeholder="Cari nama/nisn" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-[150px] sm:w-[200px] border border-gray-300 rounded px-3 py-1.5 outline-none text-sm" />
         </div>
 
         <div className="border border-black rounded-[4px] overflow-x-auto bg-white mb-4 custom-scrollbar">
@@ -201,12 +194,12 @@ const DataSiswaPage = () => {
           </table>
         </div>
 
-        <div className="flex flex-row justify-between items-center text-[0.8rem] sm:text-[0.85rem] font-[600] mt-2">
-          <div className="text-slate-600">Showing {siswa.length} entries</div>
-          <div className="flex border border-gray-300 rounded-[4px] overflow-hidden shadow-sm scale-90 sm:scale-100 origin-right">
-            <button className="px-2 sm:px-3 py-1 bg-white border-r border-gray-300">Prev</button>
-            <button className="px-2 sm:px-3 py-1 bg-[#007BFF] text-white border-r border-gray-300 font-bold">1</button>
-            <button className="px-2 sm:px-3 py-1 bg-white">Next</button>
+        <div className="flex flex-row justify-between items-center text-[0.85rem] font-[600]">
+          <div className="text-slate-600">Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, siswa.length)} of {siswa.length} entries</div>
+          <div className="flex border border-gray-300 rounded shadow-sm">
+            <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} className="px-3 py-1 bg-white hover:bg-gray-50 border-r disabled:opacity-50">Prev</button>
+            <div className="px-4 py-1 bg-[#007BFF] text-white font-bold">{currentPage}</div>
+            <button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(prev => prev + 1)} className="px-3 py-1 bg-white hover:bg-gray-50 disabled:opacity-50">Next</button>
           </div>
         </div>
       </div>
