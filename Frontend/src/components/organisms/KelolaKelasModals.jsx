@@ -44,73 +44,79 @@ const ModalWrapper = ({ title, icon: Icon, onClose, children, size = "max-w-lg" 
 
 // --- 1. MODAL TAMBAH / EDIT KELAS ---
 export const FormKelasModal = ({ mode = "add", onClose, onSave, dataKelas }) => {
-  const initialForm = { nama_kelas: "", musyif_id: "", target_hafalan: "" };
+  const initialForm = { nama_kelas: "", musyif_ids: [], target_hafalan: "" };
   const [form, setForm] = useState(initialForm);
   const [musyifList, setMusyifList] = useState([]);
 
   useEffect(() => {
-    const fetchMusyif = async () => {
+    const fetchMusyifs = async () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get("http://127.0.0.1:8000/api/musyif/", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const formatted = res.data.map(m => ({
-          value: m.id,
-          label: `${m.first_name} ${m.last_name}`
-        }));
-        setMusyifList([{ value: "", label: "-- Pilih Musyif --" }, ...formatted]);
-      } catch (err) {
-        console.error("Gagal load musyif", err);
-      }
+        setMusyifList(res.data);
+      } catch (err) { console.error(err); }
     };
-    fetchMusyif();
+    fetchMusyifs();
 
     if (mode === "edit" && dataKelas) {
-      const cleanTarget = dataKelas.target_hafalan ? dataKelas.target_hafalan.replace(/[^0-9]/g, "") : "";
       setForm({
-        id: dataKelas.id,
-        nama_kelas: dataKelas.nama_kelas,
-        // LOGIKA: Backend sekarang mengirim musyif_id, jadi dropdown otomatis terpilih
-        musyif_id: dataKelas.musyif_id || "", 
-        target_hafalan: cleanTarget 
+        ...dataKelas,
+        // Backend mengirim data musyif sebagai array ID, kita petakan ke musyif_ids
+        musyif_ids: dataKelas.musyif || [] 
       });
     }
   }, [mode, dataKelas]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "target_hafalan") {
-      const onlyNums = value.replace(/[^0-9]/g, ""); 
-      setForm({ ...form, [name]: onlyNums });
+  const handleToggleMusyif = (id) => {
+    const currentIds = [...form.musyif_ids];
+    if (currentIds.includes(id)) {
+      setForm({ ...form, musyif_ids: currentIds.filter(item => item !== id) });
     } else {
-      setForm({ ...form, [name]: value });
+      setForm({ ...form, musyif_ids: [...currentIds, id] });
     }
   };
 
-  // LOGIKA BARU: Cari nama musyif sebelum disimpan agar bisa tampil di ConfirmModal
   const handleSaveClick = () => {
-    const selectedMusyif = musyifList.find(m => String(m.value) === String(form.musyif_id));
-    const dataToSave = {
-        ...form,
-        // Sisipkan nama musyif sementara untuk keperluan display
-        _displayMusyif: selectedMusyif ? selectedMusyif.label : "-"
-    };
-    onSave(dataToSave);
+    // Siapkan data display untuk modal konfirmasi
+    const selectedNames = musyifList
+      .filter(m => form.musyif_ids.includes(m.id))
+      .map(m => `${m.first_name} ${m.last_name}`)
+      .join(", ");
+    
+    // Kirim data ke fungsi onSave di KelolaKelasPage.jsx
+    onSave({
+      ...form,
+      _displayMusyif: selectedNames || "-"
+    });
   };
 
   return (
-    <ModalWrapper title={mode === "add" ? "Tambah Kelas" : "Edit Kelas"} icon={mode === "add" ? BiPlus : BiPencil} onClose={onClose} size="max-w-2xl">
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ModalInput label="Nama Kelas" name="nama_kelas" placeholder="Contoh: 1 A" value={form.nama_kelas} onChange={handleChange} />
-            <ModalInput label="Musyif" name="musyif_id" type="select" options={musyifList} value={form.musyif_id} onChange={handleChange} />
+    <ModalWrapper title={mode === "add" ? "Tambah Kelas" : "Edit Kelas"} icon={mode === "add" ? BiPlus : BiPencil} onClose={onClose}>
+      <div className="space-y-5">
+        <ModalInput label="Nama Kelas" name="nama_kelas" value={form.nama_kelas} onChange={(e) => setForm({...form, nama_kelas: e.target.value})} />
+        
+        <div>
+          <label className="block font-[700] text-[#1a1a1a] mb-2 text-[0.95rem]">Pilih Musyif Pengampu</label>
+          <div className="bg-[#D9D9D9] rounded-[4px] p-3 max-h-[150px] overflow-y-auto space-y-2 custom-scrollbar">
+            {musyifList.map((m) => (
+              <label key={m.id} className="flex items-center gap-3 cursor-pointer p-1">
+                <input 
+                  type="checkbox" 
+                  checked={form.musyif_ids.includes(m.id)}
+                  onChange={() => handleToggleMusyif(m.id)}
+                />
+                <span className="text-slate-800 font-[500]">{m.first_name} {m.last_name}</span>
+              </label>
+            ))}
+          </div>
         </div>
-        <ModalInput label="Target Hafalan (Jumlah Surah)" name="target_hafalan" placeholder="Contoh: 5" value={form.target_hafalan} onChange={handleChange} />
-        <hr className="border-t border-black my-6 -mx-6 opacity-100" />
-        <div className="flex flex-row justify-end gap-3">
-          <button onClick={() => setForm(initialForm)} className="bg-[#E53E3E] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-red-700 transition-colors"><BiTrash /> Reset</button>
-          <button onClick={handleSaveClick} className="bg-[#5294A9] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-[#417688] transition-colors"><BiSave /> {mode === "add" ? "Simpan" : "Ubah"}</button>
+
+        <ModalInput label="Target Hafalan" name="target_hafalan" value={form.target_hafalan} onChange={(e) => setForm({...form, target_hafalan: e.target.value})} />
+        
+        <div className="flex justify-end gap-3 pt-4 border-t border-black">
+          <button onClick={handleSaveClick} className="bg-[#5294A9] text-white rounded-[4px] px-6 py-2 font-[700]">Simpan</button>
         </div>
       </div>
     </ModalWrapper>

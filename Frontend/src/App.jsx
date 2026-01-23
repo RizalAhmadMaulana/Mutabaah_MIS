@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import komponen baru
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import BerandaPage from "./pages/BerandaPage";
 import SettingProfilePage from "./pages/SettingProfilePage";
@@ -10,58 +10,37 @@ import DataSiswaPage from "./pages/DataSiswaPage";
 import DataMusyifPage from "./pages/DataMusyifPage";
 import ManagementUserPage from "./pages/ManagementUserPage";
 
+// --- IMPORT HALAMAN WA GATEWAY ---
+import KoneksiPage from "./pages/wa/KoneksiPage";
+import KirimPesanPage from "./pages/wa/KirimPesanPage";
+import RiwayatPesanPage from "./pages/wa/RiwayatPesanPage";
+import TemplateChat from "./pages/wa/TemplateChat";
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Route */}
         <Route path="/" element={<LoginPage />} />
 
-        {/* Akses: Semua Role (Admin, Musyif, Wali Murid) */}
-        <Route path="/beranda" element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}>
-            <BerandaPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/laporan" element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}>
-            <LaporanPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/setting-profile" element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}>
-            <SettingProfilePage />
-          </ProtectedRoute>
-        } />
+        {/* Akses: Semua Role */}
+        <Route path="/beranda" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}><BerandaPage /></ProtectedRoute>} />
+        <Route path="/laporan" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}><LaporanPage /></ProtectedRoute>} />
+        <Route path="/setting-profile" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}><SettingProfilePage /></ProtectedRoute>} />
 
-        {/* Akses: Admin & Musyif Saja */}
-        <Route path="/setor" element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}>
-            <SetorHafalanPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/kelas" element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}>
-            <KelolaKelasPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/data-siswa" element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}>
-            <DataSiswaPage />
-          </ProtectedRoute>
-        } />
+        {/* Akses: Admin & Musyif */}
+        <Route path="/setor" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}><SetorHafalanPage /></ProtectedRoute>} />
+        <Route path="/kelas" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}><KelolaKelasPage /></ProtectedRoute>} />
+        <Route path="/data-siswa" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}><DataSiswaPage /></ProtectedRoute>} />
 
         {/* Akses: Khusus Admin Saja */}
-        <Route path="/data-musyif" element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <DataMusyifPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/management-user" element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <ManagementUserPage />
-          </ProtectedRoute>
-        } />
+        <Route path="/data-musyif" element={<ProtectedRoute allowedRoles={['ADMIN']}><DataMusyifPage /></ProtectedRoute>} />
+        <Route path="/management-user" element={<ProtectedRoute allowedRoles={['ADMIN']}><ManagementUserPage /></ProtectedRoute>} />
+
+        {/* --- ROUTE WA GATEWAY (KHUSUS ADMIN) --- */}
+        <Route path="/wa/koneksi" element={<ProtectedRoute allowedRoles={['ADMIN']}><KoneksiPage /></ProtectedRoute>} />
+        <Route path="/wa/kirim" element={<ProtectedRoute allowedRoles={['ADMIN']}><KirimPesanPage /></ProtectedRoute>} />
+        <Route path="/wa/riwayat" element={<ProtectedRoute allowedRoles={['ADMIN']}><RiwayatPesanPage /></ProtectedRoute>} />
+        <Route path="/wa/template" element={<ProtectedRoute allowedRoles={['ADMIN']}><TemplateChat /></ProtectedRoute>} />
       </Routes>
     </Router>
   );

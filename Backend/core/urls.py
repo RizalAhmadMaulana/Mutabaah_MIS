@@ -7,9 +7,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('accounts.urls')), 
-    
-    # PERBAIKAN: Ubah 'api/academic/kelas/' menjadi 'api/academic/' saja
     path('api/academic/', include('academic.urls')), 
+    path('api/wa/', include('wa_gateway.urls')),
 ]
 
 if settings.DEBUG:

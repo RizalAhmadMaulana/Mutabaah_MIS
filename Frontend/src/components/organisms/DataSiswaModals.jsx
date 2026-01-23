@@ -130,7 +130,7 @@ export const FormSiswaModal = ({ mode = "add", onClose, onSave, userData }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ModalInput label="Tempat, Tanggal Lahir" name="birth_info" placeholder="Contoh: Semarang, 01/01/2010" value={form.birth_info} onChange={handleChange} />
-            <ModalInput label="No Telp Orangtua (Angka Saja)" name="phone_number" placeholder="08xxxxxxxxxx" value={form.phone_number} onChange={handleChange} />
+            <ModalInput label="No Telp Orangtua (Contoh:628xxx)" name="phone_number" placeholder="08xxxxxxxxxx" value={form.phone_number} onChange={handleChange} />
         </div>
         
         <ModalInput label="Email (Opsional)" name="email" type="email" placeholder="Email Orang Tua" value={form.email} onChange={handleChange} />

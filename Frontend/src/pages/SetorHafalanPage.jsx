@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import DashboardLayout from "../components/templates/DashboardLayout";
 import IconButton from "../components/atoms/IconButton";
-import { BiPlus, BiFile, BiPencil, BiTrash, BiLogoWhatsapp } from "react-icons/bi";
+import { BiPlus, BiFile, BiPencil, BiTrash } from "react-icons/bi";
 import { FormHafalanModal, ImportExcelModal, ConfirmModal } from "../components/organisms/SetorHafalanModals";
 
 const SetorHafalanPage = () => {
@@ -69,7 +69,8 @@ const SetorHafalanPage = () => {
       
       setActiveModal(null);
       setTempFormData(null);
-      fetchHafalan();
+      // Refresh tabel agar status WA "Terkirim" muncul
+      fetchHafalan(); 
     } catch (err) {
       alert("Gagal memproses data hafalan.");
     }
@@ -93,37 +94,17 @@ const SetorHafalanPage = () => {
     }
   };
 
-  const handleSendWA = async (row) => {
-    if (!row.siswa_phone) return alert("Nomor telepon wali murid tidak ditemukan!");
-
-    const today = new Date().toLocaleDateString('id-ID', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-
-    const message = `assalamualaikum wali murid dari ${row.nama_siswa}, kami dari Mentari Islamic School izin memberitahukan laporan hafalan hari ${today}:\n\njuzz: ${row.juz}\nsurah: ${row.surah}\nayat: ${row.ayat}\njenis setoran: ${row.jenis_setoran}\nnilai: ${row.nilai}\ncatatan: ${row.catatan || '-'}\n\nSyukron.`;
-
-    const waUrl = `https://wa.me/${row.siswa_phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.patch(`http://127.0.0.1:8000/api/academic/hafalan/${row.id}/`, 
-        { wa_sent: true },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      window.open(waUrl, '_blank');
-      fetchHafalan();
-    } catch (err) {
-      window.open(waUrl, '_blank');
-    }
-  };
-
-  const headers = ["#", "Nama Siswa", "Kelas", "Tanggal", "Musyif", "Surah", "Juz", "Ayat", "Jenis", "Nilai", "Catatan", "Aksi"];
+  /**
+   * PERBAIKAN HEADER: Menambahkan "Catatan" dan "Log WA" 
+   * agar sinkron dengan 13 kolom di body
+   */
+  const headers = [
+    "#", "Nama Siswa", "Kelas", "Tanggal", "Musyif", 
+    "Surah", "Juz", "Ayat", "Jenis", "Nilai", 
+    "Catatan", "Status WA", "Aksi"
+  ];
 
   const renderTableBody = () => {
-    // Gunakan currentItems hasil slicing, bukan hafalanData utuh
     return currentItems.map((row, idx) => (
       <tr key={row.id} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
         <td className="border border-black px-3 py-2.5 text-center font-medium text-slate-700">{indexOfFirstItem + idx + 1}</td>
@@ -140,16 +121,20 @@ const SetorHafalanPage = () => {
             </span>
         </td>
         <td className="border border-black px-3 py-2.5 text-center font-bold text-lg">{row.nilai}</td>
-        <td className="border border-black px-3 py-2.5 text-center truncate max-w-[150px]">{row.catatan}</td>
+        {/* Kolom Catatan */}
+        <td className="border border-black px-3 py-2.5 text-center truncate max-w-[150px] italic text-slate-600">{row.catatan || "-"}</td>
+        {/* Kolom Status WA Pill */}
+        <td className="border border-black px-3 py-2.5 text-center">
+            {row.wa_sent ? (
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[0.7rem] font-bold uppercase tracking-tighter">Terkirim ✓</span>
+            ) : (
+                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[0.7rem] font-bold uppercase tracking-tighter">Gagal ✗</span>
+            )}
+        </td>
         <td className="border border-black px-3 py-2.5 text-center">
           <div className="flex gap-2 justify-center items-center">
             <IconButton icon={BiPencil} colorClass="bg-[#2ECC71]" onClick={() => { setSelectedHafalan(row); setActiveModal('edit'); }} />
             <IconButton icon={BiTrash} colorClass="bg-[#E74C3C]" onClick={() => handleOpenDelete(row)} />
-            <IconButton 
-                icon={BiLogoWhatsapp} 
-                colorClass={row.wa_sent ? "bg-[#128C7E]" : "bg-[#25D366]"} 
-                onClick={() => handleSendWA(row)} 
-            />
           </div>
         </td>
       </tr>
@@ -221,7 +206,7 @@ const SetorHafalanPage = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={12} className="text-center p-10 font-bold text-slate-400 italic">Memuat data hafalan...</td></tr>
+                <tr><td colSpan={13} className="text-center p-10 font-bold text-slate-400 italic">Memuat data hafalan...</td></tr>
               ) : renderTableBody()}
             </tbody>
           </table>

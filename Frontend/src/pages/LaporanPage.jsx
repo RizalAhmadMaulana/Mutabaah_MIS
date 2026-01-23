@@ -145,7 +145,6 @@ const LaporanPage = () => {
           />
         </div>
 
-        {/* PERBAIKAN: Tombol Sejajar & Responsif */}
         <div className="flex flex-row gap-2 sm:gap-3 justify-center mb-8">
           <ActionButton 
             label="Search Data" icon={BiSearch} variant="primary" 
@@ -159,7 +158,33 @@ const LaporanPage = () => {
           />
         </div>
 
-        {/* Tabel Rekap... */}
+        {/* --- KETERANGAN RINGKASAN (BARU) --- */}
+        {rekapData.summary && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="bg-[#f0fdf4] p-4 rounded-xl border border-green-200 flex items-center gap-4 shadow-sm">
+               <div className="bg-green-500 p-3 rounded-lg text-white text-2xl"><BiCheckCircle /></div>
+               <div>
+                 <div className="text-slate-500 text-[0.7rem] sm:text-xs font-bold uppercase tracking-wider">Total Hafalan</div>
+                 <div className="text-lg sm:text-2xl font-bold text-slate-800">{rekapData.summary.total_hafalan}</div>
+               </div>
+            </div>
+            <div className="bg-[#f0f9ff] p-4 rounded-xl border border-blue-200 flex items-center gap-4 shadow-sm">
+               <div className="bg-blue-500 p-3 rounded-lg text-white text-2xl"><BiTargetLock /></div>
+               <div>
+                 <div className="text-slate-500 text-[0.7rem] sm:text-xs font-bold uppercase tracking-wider">Target Kelas</div>
+                 <div className="text-lg sm:text-2xl font-bold text-slate-800">{rekapData.summary.target_hafalan}</div>
+               </div>
+            </div>
+            <div className={`p-4 rounded-xl border flex items-center gap-4 shadow-sm ${rekapData.summary.status === 'Terpenuhi' ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+               <div className={`p-3 rounded-lg text-white text-2xl ${rekapData.summary.status === 'Terpenuhi' ? 'bg-emerald-600' : 'bg-rose-500'}`}><BiBookContent /></div>
+               <div>
+                 <div className={`text-[0.7rem] sm:text-xs font-bold uppercase tracking-wider ${rekapData.summary.status === 'Terpenuhi' ? 'text-emerald-700' : 'text-rose-700'}`}>Status Capaian</div>
+                 <div className={`text-base sm:text-xl font-bold ${rekapData.summary.status === 'Terpenuhi' ? 'text-emerald-800' : 'text-rose-800'}`}>{rekapData.summary.status}</div>
+               </div>
+            </div>
+          </div>
+        )}
+
         <div className="border border-black rounded-[4px] overflow-x-auto bg-white custom-scrollbar">
           <table className="w-full border-collapse min-w-[1100px]">
             <thead>
@@ -215,7 +240,6 @@ const LaporanPage = () => {
           </div>
         </div>
 
-        {/* PERBAIKAN: Desain Pill Button Filter Menarik */}
         <div className="flex flex-wrap justify-center gap-2 mb-6">
           <button 
             onClick={() => handleSearchRiwayat("hari_ini")} 

@@ -3,21 +3,27 @@ from .models import Kelas, SetorHafalan
 from accounts.models import User
 
 class KelasSerializer(serializers.ModelSerializer):
+    # Field untuk menampilkan nama-nama musyif (Read Only)
     nama_musyif = serializers.SerializerMethodField()
-    musyif_id = serializers.PrimaryKeyRelatedField(
+    
+    # Field untuk menerima input banyak ID musyif dari frontend
+    musyif_ids = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role='MUSYIF'),
-        source='musyif',
-        allow_null=True,
+        source='musyif', # Menghubungkan langsung ke field 'musyif' di model
+        many=True,
         required=False
     )
 
     class Meta:
         model = Kelas
-        fields = ['id', 'nama_kelas', 'target_hafalan', 'musyif_id', 'nama_musyif']
+        # PERBAIKAN: Masukkan musyif_ids ke sini agar tidak error
+        fields = ['id', 'nama_kelas', 'target_hafalan', 'musyif_ids', 'nama_musyif']
 
     def get_nama_musyif(self, obj):
-        if obj.musyif:
-            return f"{obj.musyif.first_name} {obj.musyif.last_name}"
+        # Mengambil semua musyif dan menggabungkan nama mereka dengan koma
+        musyifs = obj.musyif.all()
+        if musyifs.exists():
+            return ", ".join([f"{m.first_name} {m.last_name}" for m in musyifs])
         return "-"
 
     def validate_target_hafalan(self, value):

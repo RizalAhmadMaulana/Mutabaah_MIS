@@ -3,26 +3,29 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import LogoutModal from "../molecules/LogoutModal";
 import { 
   BiHome, BiBarChartSquare, BiCheckSquare, BiLayer, 
-  BiCog, BiChevronDown, BiUser, BiIdCard, BiGroup, BiLogOut, BiSearch 
+  BiCog, BiChevronDown, BiUser, BiIdCard, BiGroup, BiLogOut,
+  BiCast, BiDevices, BiEnvelope, BiTimeFive, BiChat
 } from "react-icons/bi";
 import logoMIS from "../../assets/logo.png"; 
 
 const Sidebar = ({ isCollapsed, isActive }) => {
   const [isInputDataOpen, setInputDataOpen] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isWAOpen, setWAOpen] = useState(false); 
   
   const location = useLocation();
   const navigate = useNavigate();
 
-  // LOGIKA: Ambil data user dari localStorage
   const userData = JSON.parse(localStorage.getItem("user")) || { role: "" };
   const userRole = userData.role;
 
   useEffect(() => {
-    if (isCollapsed) setInputDataOpen(false);
+    if (isCollapsed) {
+      setInputDataOpen(false);
+      setWAOpen(false);
+    }
   }, [isCollapsed]);
 
-  // LOGIKA: Fungsi Logout (Hapus LocalStorage)
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -42,6 +45,12 @@ const Sidebar = ({ isCollapsed, isActive }) => {
     { path: "/data-musyif", label: "Data Musyif", icon: BiIdCard, roles: ["ADMIN"] },
   ];
 
+  const waSubMenuItems = [
+    { path: "/wa/koneksi", label: "Koneksi Perangkat", icon: BiDevices },
+    { path: "/wa/kirim", label: "Kirim Pesan", icon: BiEnvelope },
+    { path: "/wa/template", label: "Template Chat", icon: BiChat },
+  ];
+
   return (
     <>
       {showLogoutModal && <LogoutModal onClose={() => setShowLogoutModal(false)} onConfirm={handleLogout} />}
@@ -57,7 +66,22 @@ const Sidebar = ({ isCollapsed, isActive }) => {
           </span>
         </div>
 
-        <nav className={`px-0 space-y-0.5 overflow-y-auto custom-scrollbar ${isCollapsed ? "mt-4" : "mt-1"} max-h-[calc(100vh-140px)]`}>
+        {/* PERBAIKAN: Menambahkan style untuk menyembunyikan scrollbar di semua browser */}
+        <nav 
+          className={`px-0 space-y-0.5 overflow-y-auto overflow-x-hidden ${isCollapsed ? "mt-4" : "mt-1"} max-h-[calc(100vh-80px)]`}
+          style={{
+            scrollbarWidth: 'none', // Untuk Firefox
+            msOverflowStyle: 'none', // Untuk Internet Explorer/Edge
+          }}
+        >
+          {/* CSS tambahan untuk browser berbasis Webkit (Chrome/Safari/Opera) */}
+          <style>
+            {`
+              nav::-webkit-scrollbar {
+                display: none;
+              }
+            `}
+          </style>
           
           {menuItems.filter(item => item.roles.includes(userRole)).map((item) => (
             <Link key={item.path} to={item.path} title={isCollapsed ? item.label : ""}
@@ -71,6 +95,7 @@ const Sidebar = ({ isCollapsed, isActive }) => {
             </Link>
           ))}
 
+          {/* MENU: INPUT DATA */}
           {["ADMIN", "MUSYIF"].includes(userRole) && (
             <div className="pt-2">
               <button onClick={() => !isCollapsed && setInputDataOpen(!isInputDataOpen)} 
@@ -88,17 +113,10 @@ const Sidebar = ({ isCollapsed, isActive }) => {
                     .filter(sub => sub.roles.includes(userRole))
                     .map((sub) => {
                       const isActive = location.pathname === sub.path;
-
                       return (
-                        <Link
-                          key={sub.path}
-                          to={sub.path}
+                        <Link key={sub.path} to={sub.path}
                           className={`flex items-center gap-3 pl-10 pr-5 py-3 text-[0.9rem] transition-all duration-200 border-l-[4px]
-                            ${
-                              isActive
-                                ? "bg-black/15 text-white border-[#2ecc71] font-semibold"
-                                : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"
-                            }
+                            ${isActive ? "bg-black/15 text-white border-[#2ecc71] font-semibold" : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"}
                           `}
                         >
                           <sub.icon className="text-[1.1rem] shrink-0" />
@@ -108,19 +126,15 @@ const Sidebar = ({ isCollapsed, isActive }) => {
                     })}
                 </div>
               )}
-
             </div>
           )}
 
+          {/* MENU: MANAGEMENT USER */}
           {userRole === "ADMIN" && (
-            <Link 
-              to="/management-user" 
-              title={isCollapsed ? "Management User" : ""} 
+            <Link to="/management-user" title={isCollapsed ? "Management User" : ""} 
               className={`flex items-center gap-3 px-5 py-3.5 transition-all duration-200 whitespace-nowrap border-l-[4px]
-                ${location.pathname === "/management-user"
-                  ? "bg-black/15 text-white border-[#2ecc71] font-semibold"
-                  : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"
-                } ${isCollapsed ? "justify-center" : ""}`}
+                ${location.pathname === "/management-user" ? "bg-black/15 text-white border-[#2ecc71] font-semibold" : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"} 
+                ${isCollapsed ? "justify-center" : ""}`}
             >
               <BiGroup className={`text-[1.35rem] shrink-0 ${location.pathname === "/management-user" ? "text-[#2ecc71]" : ""}`} /> 
               <span className={`text-[0.95rem] transition-all ${isCollapsed ? "hidden absolute" : "block relative"}`}>
@@ -128,8 +142,54 @@ const Sidebar = ({ isCollapsed, isActive }) => {
               </span>
             </Link>
           )}
+
+          {/* MENU: RIWAYAT PESAN */}
+          {userRole === "ADMIN" && (
+            <Link to="/wa/riwayat" title={isCollapsed ? "Riwayat Pesan" : ""} 
+              className={`flex items-center gap-3 px-5 py-3.5 transition-all duration-200 whitespace-nowrap border-l-[4px]
+                ${location.pathname === "/wa/riwayat" ? "bg-black/15 text-white border-[#2ecc71] font-semibold" : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"} 
+                ${isCollapsed ? "justify-center" : ""}`}
+            >
+              <BiTimeFive className={`text-[1.35rem] shrink-0 ${location.pathname === "/wa/riwayat" ? "text-[#2ecc71]" : ""}`} /> 
+              <span className={`text-[0.95rem] transition-all ${isCollapsed ? "hidden absolute" : "block relative"}`}>
+                Riwayat Pesan
+              </span>
+            </Link>
+          )}
+
+          {/* MENU: WA GATEWAY */}
+          {userRole === "ADMIN" && (
+            <div className="pt-2">
+              <button onClick={() => !isCollapsed && setWAOpen(!isWAOpen)} 
+                className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-black/10 text-white/90 transition-all whitespace-nowrap border-l-[4px] border-transparent ${isCollapsed ? "justify-center cursor-default" : "cursor-pointer"}`}>
+                <BiCast className="text-[1.35rem] shrink-0" />
+                <div className={`flex items-center flex-1 transition-all duration-200 ${isCollapsed ? "opacity-0 w-0 hidden absolute" : "opacity-100 w-auto relative"}`}>
+                  <span className="text-[0.95rem] font-medium">WA Gateway</span>
+                  <BiChevronDown className={`ms-auto text-xl transition-transform duration-300 ${isWAOpen ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+              
+              {!isCollapsed && isWAOpen && (
+                <div className="py-1">
+                  {waSubMenuItems.map((sub) => {
+                    const isActive = location.pathname === sub.path;
+                    return (
+                      <Link key={sub.path} to={sub.path}
+                        className={`flex items-center gap-3 pl-10 pr-5 py-3 text-[0.9rem] transition-all duration-200 border-l-[4px]
+                          ${isActive ? "bg-black/15 text-white border-[#2ecc71] font-semibold" : "text-white/80 hover:bg-black/10 hover:text-white border-transparent"}
+                        `}
+                      >
+                        <sub.icon className="text-[1.1rem] shrink-0" />
+                        {sub.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           
-          <div className="pt-4">
+          <div className="pt-4 pb-10">
              <button onClick={() => setShowLogoutModal(true)} className={`w-full flex items-center gap-3 px-5 py-3 transition-colors whitespace-nowrap text-left text-white/90 hover:text-[#EF4444] hover:bg-[#EF4444]/10 border-l-[4px] border-transparent ${isCollapsed ? "justify-center" : ""}`}>
                <BiLogOut className="text-[1.3rem] shrink-0" /> 
                <span className={`text-[0.95rem] font-medium transition-all ${isCollapsed ? "hidden absolute" : "block relative"}`}>Keluar</span>

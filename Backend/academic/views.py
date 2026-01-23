@@ -24,8 +24,74 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.barcharts import VerticalBarChart
+import requests
+from wa_gateway.models import WATemplate, WAMessageLog
 
 User = get_user_model()
+
+def send_auto_wa(instance):
+    """
+    LOGIKA: Mengirim laporan hafalan otomatis menggunakan template
+    """
+    try:
+        # 1. Ambil template 'setor_hafalan'
+        template = WATemplate.objects.get(nama='setor_hafalan')
+        pesan_raw = template.pesan
+        
+        # 2. Ambil data santri dan musyif dari instance hafalan
+        siswa = instance.siswa
+        musyif = instance.musyif
+        nomor_wa = siswa.phone_number
+        
+        if not nomor_wa:
+            print(f"Skip: {siswa.first_name} tidak memiliki nomor WA.")
+            return
+
+        # 3. Proses Mapping Tag (Ganti [tag] dengan data asli)
+        replacements = {
+            "[nama_siswa]": f"{siswa.first_name} {siswa.last_name}",
+            "[kelas]": getattr(siswa, 'kelas', '-'),
+            "[tanggal]": instance.tanggal.strftime('%d/%m/%Y'),
+            "[musyif]": f"{musyif.first_name} {musyif.last_name}",
+            "[surah]": instance.surah,
+            "[juz]": str(instance.juz),
+            "[ayat]": instance.ayat or "-",
+            "[jenis]": instance.jenis_setoran,
+            "[nilai]": instance.nilai,
+            "[catatan]": instance.catatan or "-"
+        }
+
+        pesan_final = pesan_raw
+        for tag, value in replacements.items():
+            pesan_final = pesan_final.replace(tag, str(value))
+
+        # 4. Kirim ke Node.js API (Port 6969)
+        payload = {
+            "sender": "admin_mis", 
+            "number": nomor_wa,
+            "message": pesan_final
+        }
+        
+        # Endpoint sesuai instruksi gateway
+        res = requests.post("http://localhost:6969/send-message", json=payload, timeout=10)
+        
+        # 5. Catat Log ke database Django
+        status_wa = 'terkirim' if res.status_code == 200 else 'gagal'
+        WAMessageLog.objects.create(
+            penerima=nomor_wa,
+            pesan=pesan_final,
+            status=status_wa
+        )
+        
+        # 6. Tandai wa_sent = True di database hafalan jika berhasil
+        if status_wa == 'terkirim':
+            instance.wa_sent = True
+            instance.save(update_fields=['wa_sent'])
+            
+    except WATemplate.DoesNotExist:
+        print("Error: Template 'setor_hafalan' belum ada!")
+    except Exception as e:
+        print(f"Auto WA Error: {str(e)}")
 
 class IsAdminOrMusyif(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -77,6 +143,13 @@ class SetorHafalanViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['siswa__first_name', 'siswa__last_name', 'surah']
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        send_auto_wa(serializer.instance) # EKSEKUSI OTOMATIS SAAT SIMPAN
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        send_auto_wa(serializer.instance) # KIRIM ULANG SAAT EDIT (OPSIONAL)
 
 # --- IMPORT EXCEL HAFALAN ---
 class HafalanImportExcelView(generics.CreateAPIView):

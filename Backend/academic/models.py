@@ -7,14 +7,7 @@ class Kelas(models.Model):
     
     # LOGIKA: Relasi ke User dengan Role Musyif
     # on_delete=models.SET_NULL: Jika Musyif dihapus, kelasnya jangan ikut kehapus (musyif jadi kosong)
-    musyif = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='kelas_diampu',
-        limit_choices_to={'role': 'MUSYIF'} # Filter hanya user Musyif yang bisa dipilih
-    )
+    musyif = models.ManyToManyField('accounts.User', related_name='kelas_diampu')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

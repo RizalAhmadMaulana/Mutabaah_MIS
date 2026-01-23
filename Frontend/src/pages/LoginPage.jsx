@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { BiUserCircle, BiPhone, BiLockAlt, BiLogInCircle } from "react-icons/bi";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // LOGIKA: Import axios
+import axios from "axios";
 import BannerPanel from "../components/organisms/BannerPanel";
 import InputField from "../components/molecules/InputField";
 
+// LOGIKA: Import gambar dari folder assets
+import bgLocation from "../assets/loc-mis.jpeg";
+
 const LoginPage = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState(""); // LOGIKA: State Username
-  const [password, setPassword] = useState(""); // LOGIKA: State Password
-  const [error, setError] = useState("");      // LOGIKA: State Error
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [phone, setPhone] = useState("");
 
   const handleLogin = async (e) => {
@@ -17,17 +20,15 @@ const LoginPage = () => {
     setError("");
 
     try {
-      // LOGIKA: Tembak API Login Django
       const response = await axios.post("http://127.0.0.1:8000/api/login/", {
         username: username,
         password: password
       });
 
-      // LOGIKA: Simpan Token dan Data User
       localStorage.setItem("token", response.data.access);
       localStorage.setItem("user", JSON.stringify({
         username: response.data.username,
-        role: response.data.role, // ADMIN, MUSYIF, atau WALI_MURID
+        role: response.data.role,
         name: response.data.name,
         is_default: response.data.is_default,
         is_profile_complete: response.data.is_profile_complete
@@ -51,19 +52,30 @@ const LoginPage = () => {
   const WA_URL = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(WA_TEXT)}`;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#f1f5f9] font-poppins text-[#0A2540]">
-      <div className="bg-white rounded-[24px] overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] w-full max-w-[500px] lg:max-w-[1100px] flex flex-col lg:flex-row min-h-[650px]">
+    // LOGIKA: Container utama dibuat relative dan overflow-hidden untuk efek blur background
+    <div className="relative min-h-screen flex items-center justify-center p-4 font-poppins text-[#0A2540] overflow-hidden">
+      
+      {/* LAYER 1: Background Image dengan Blur */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat blur-[4px] scale-105"
+        style={{ backgroundImage: `url(${bgLocation})` }}
+      ></div>
+
+      {/* LAYER 2: Dark Overlay agar Form lebih menonjol */}
+      <div className="absolute inset-0 z-10 bg-black/20"></div>
+
+      {/* LAYER 3: Login Card (Struktur desain tetap sama) */}
+      <div className="relative z-20 bg-white/95 backdrop-blur-sm rounded-[24px] overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] w-full max-w-[500px] lg:max-w-[1100px] flex flex-col lg:flex-row min-h-[650px]">
         
         <BannerPanel />
 
-        <div className="w-full lg:w-1/2 p-8 md:p-10 lg:p-20 flex flex-col justify-center">
+        <div className="w-full lg:w-1/2 p-8 md:p-10 lg:p-20 flex flex-col justify-center bg-white">
           <div className="mb-8 text-center lg:text-left">
-            <h2 className="text-[1.8rem] lg:text-[2.2rem] font-[800] mb-2 leading-tight">Login Akun</h2>
-            <p className="text-slate-400 text-sm">Silakan masuk untuk mengakses system hafalan santri</p>
+            <h2 className="text-[1.8rem] lg:text-[2.2rem] font-[800] mb-2 leading-tight text-[#0A2540]">Login Akun</h2>
+            <p className="text-slate-500 text-sm">Silakan masuk untuk mengakses system hafalan santri</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-1">
-            {/* LOGIKA: Menampilkan Error */}
             {error && <p className="text-red-500 text-xs font-bold mb-2 ml-1">{error}</p>}
 
             <InputField 

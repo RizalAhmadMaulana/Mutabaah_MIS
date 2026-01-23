@@ -95,41 +95,22 @@ const KelolaKelasPage = () => {
   
   // LOGIKA BARU: Render tabel dinamis sesuai jumlah data (tanpa baris kosong)
   const renderTableBody = () => {
-    if (kelasData.length === 0) {
-      return (
-        <tr>
-          <td colSpan={headers.length} className="text-center p-8 text-slate-500 italic bg-[#f9f9f9]">
-            Belum ada data kelas yang tersedia.
-          </td>
-        </tr>
-      );
-    }
-
     return currentItems.map((row, idx) => (
       <tr key={row.id} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
         <td className="border border-black px-3 py-2.5 text-center font-medium">{indexOfFirstItem + idx + 1}</td>
         <td className="border border-black px-3 py-2.5 text-center font-bold">{row.nama_kelas}</td>
+        {/* Field ini otomatis menampilkan daftar nama musyif yang dipisahkan koma */}
         <td className="border border-black px-3 py-2.5 text-center">{row.nama_musyif || "-"}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.target_hafalan || "-"}</td>
         <td className="border border-black px-3 py-2.5 text-center">
-          <div className="flex gap-2 justify-center items-center">
-            <button 
-              onClick={() => { setSelectedKelas(row); setActiveModal('edit'); }}
-              className="bg-[#2ECC71] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#27ae60] transition-all"
-            >
-              <BiPencil className="text-[1rem]" /> Edit
-            </button>
-            <button 
-              onClick={() => handleOpenDelete(row)}
-              className="bg-[#E74C3C] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#c0392b] transition-all"
-            >
-              <BiTrash className="text-[1rem]" /> Hapus
-            </button>
-          </div>
+            <div className="flex gap-2 justify-center">
+                <button onClick={() => { setSelectedKelas(row); setActiveModal('edit'); }} className="bg-[#2ECC71] text-white px-3 py-1 rounded font-bold hover:bg-green-600 transition-all flex items-center gap-1"><BiPencil /> Edit</button>
+                <button onClick={() => { setSelectedKelas(row); setActiveModal('confirm-delete'); }} className="bg-[#E74C3C] text-white px-3 py-1 rounded font-bold hover:bg-red-600 transition-all flex items-center gap-1"><BiTrash /> Hapus</button>
+            </div>
         </td>
       </tr>
     ));
-  };
+};
 
   return (
     <DashboardLayout title="Kelola Kelas">
