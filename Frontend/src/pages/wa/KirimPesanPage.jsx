@@ -65,7 +65,8 @@ const KirimPesanPage = () => {
     try {
       await axios.post("http://127.0.0.1:8000/api/wa/send-message/", {
         number: siswaObj.phone_number,
-        message: personalMessage
+        message: personalMessage,
+        nama_siswa: `${siswaObj.first_name} ${siswaObj.last_name}`
       }, { headers });
       alert(`Pesan terkirim ke ${siswaObj.first_name}!`);
       setPersonalMessage("");

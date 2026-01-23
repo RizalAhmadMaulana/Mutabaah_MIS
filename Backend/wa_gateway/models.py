@@ -17,6 +17,7 @@ class WAMessageLog(models.Model):
         ('delay', 'Delay'),
         ('gagal', 'Gagal'),
     )
+    nama_siswa = models.CharField(max_length=100, blank=True, null=True)
     penerima = models.CharField(max_length=20)
     pesan = models.TextField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)

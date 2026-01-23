@@ -1,7 +1,7 @@
 import requests
 import time
 import base64 # Tambahkan library base64
-from rest_framework import viewsets, status, generics, permissions
+from rest_framework import viewsets, status, generics, permissions, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -18,22 +18,29 @@ class WATemplateViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'nama'
 
-class WAMessageLogListView(generics.ListAPIView):
-    queryset = WAMessageLog.objects.all()
+class WAMessageLogViewSet(viewsets.ModelViewSet):
+    queryset = WAMessageLog.objects.all().order_by('-timestamp')
     serializer_class = WAMessageLogSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['nama_siswa', 'penerima', 'pesan']
 
 class SendMessageView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
         number = request.data.get('number')
         message = request.data.get('message')
+        nama_siswa = request.data.get('nama_siswa', '-')
         payload = {"sender": "admin_mis", "number": number, "message": message}
         try:
             # Gunakan json=payload agar konsisten
             res = requests.post("http://localhost:6969/send-message", json=payload, timeout=10)
             status_wa = 'terkirim' if res.status_code == 200 else 'gagal'
-            WAMessageLog.objects.create(penerima=number, pesan=message, status=status_wa)
+            WAMessageLog.objects.create(
+                nama_siswa=nama_siswa,
+                penerima=number, 
+                pesan=message, 
+                status=status_wa)
             return Response({"status": status_wa}, status=res.status_code)
         except:
             return Response({"error": "Gateway Node.js Mati"}, status=500)
@@ -83,6 +90,7 @@ class BroadcastView(APIView):
                     else: failed += 1
                     
                     WAMessageLog.objects.create(
+                        nama_siswa=full_name,
                         penerima=user.phone_number, 
                         pesan=f"(MEDIA) {pesan}" if encoded_media else pesan, 
                         status='terkirim' if res.status_code == 200 else 'gagal'

@@ -78,6 +78,7 @@ def send_auto_wa(instance):
         # 5. Catat Log ke database Django
         status_wa = 'terkirim' if res.status_code == 200 else 'gagal'
         WAMessageLog.objects.create(
+            nama_siswa=f"{siswa.first_name} {siswa.last_name}",
             penerima=nomor_wa,
             pesan=pesan_final,
             status=status_wa
