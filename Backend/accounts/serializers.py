@@ -40,7 +40,7 @@ class ManagementUserSerializer(serializers.ModelSerializer):
         role = validated_data.get('role')
         username = validated_data.get('username')
         
-        if role == 'MUSYIF': validated_data['nip'] = username
+        if role == 'GURU': validated_data['nip'] = username
         elif role == 'WALI_MURID': validated_data['nisn'] = username
             
         user = User.objects.create(**validated_data)
@@ -57,10 +57,10 @@ class ManagementUserSerializer(serializers.ModelSerializer):
             
         new_role = instance.role
         
-        if new_role == 'MUSYIF':
+        if new_role == 'GURU':
             instance.nip = instance.username
             instance.nisn = None
-            if not password and old_role != 'MUSYIF':
+            if not password and old_role != 'GURU':
                 instance.set_password(instance.username)
         
         elif new_role == 'WALI_MURID':
@@ -79,8 +79,8 @@ class ManagementUserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-# --- LOGIKA: Data Musyif ---
-class MusyifSerializer(serializers.ModelSerializer):
+# --- LOGIKA: Data Guru ---
+class GuruSerializer(serializers.ModelSerializer):
     kelas_ampu = serializers.SerializerMethodField()
     class Meta:
         model = User
@@ -97,7 +97,7 @@ class MusyifSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         val = str(validated_data.get('nip'))
-        validated_data.update({'username': val, 'role': 'MUSYIF', 'nisn': None})
+        validated_data.update({'username': val, 'role': 'GURU', 'nisn': None})
         user = User.objects.create(**validated_data)
         user.set_password(val)
         user.save()

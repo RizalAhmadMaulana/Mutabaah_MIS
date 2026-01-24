@@ -99,7 +99,7 @@ const SetorHafalanPage = () => {
    * agar sinkron dengan 13 kolom di body
    */
   const headers = [
-    "#", "Nama Siswa", "Kelas", "Tanggal", "Musyif", 
+    "#", "Nama Siswa", "Kelas", "Tanggal", "Guru", 
     "Surah", "Juz", "Ayat", "Jenis", "Nilai", 
     "Catatan", "Status WA", "Aksi"
   ];
@@ -111,7 +111,7 @@ const SetorHafalanPage = () => {
         <td className="border border-black px-3 py-2.5 text-center font-bold">{row.nama_siswa}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.nama_kelas || "-"}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.tanggal}</td>
-        <td className="border border-black px-3 py-2.5 text-center">{row.nama_musyif || "-"}</td>
+        <td className="border border-black px-3 py-2.5 text-center">{row.nama_guru || "-"}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.surah}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.juz}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.ayat}</td>

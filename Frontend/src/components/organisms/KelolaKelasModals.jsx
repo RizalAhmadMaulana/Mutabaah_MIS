@@ -44,51 +44,51 @@ const ModalWrapper = ({ title, icon: Icon, onClose, children, size = "max-w-lg" 
 
 // --- 1. MODAL TAMBAH / EDIT KELAS ---
 export const FormKelasModal = ({ mode = "add", onClose, onSave, dataKelas }) => {
-  const initialForm = { nama_kelas: "", musyif_ids: [], target_hafalan: "" };
+  const initialForm = { nama_kelas: "", guru_ids: [], target_hafalan: "" };
   const [form, setForm] = useState(initialForm);
-  const [musyifList, setMusyifList] = useState([]);
+  const [guruList, setGuruList] = useState([]);
 
   useEffect(() => {
-    const fetchMusyifs = async () => {
+    const fetchGurus = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://127.0.0.1:8000/api/musyif/", {
+        const res = await axios.get("http://127.0.0.1:8000/api/guru/", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setMusyifList(res.data);
+        setGuruList(res.data);
       } catch (err) { console.error(err); }
     };
-    fetchMusyifs();
+    fetchGurus();
 
     if (mode === "edit" && dataKelas) {
       setForm({
         ...dataKelas,
-        // Backend mengirim data musyif sebagai array ID, kita petakan ke musyif_ids
-        musyif_ids: dataKelas.musyif || [] 
+        // Backend mengirim data guru sebagai array ID, kita petakan ke guru_ids
+        guru_ids: dataKelas.guru || [] 
       });
     }
   }, [mode, dataKelas]);
 
-  const handleToggleMusyif = (id) => {
-    const currentIds = [...form.musyif_ids];
+  const handleToggleGuru = (id) => {
+    const currentIds = [...form.guru_ids];
     if (currentIds.includes(id)) {
-      setForm({ ...form, musyif_ids: currentIds.filter(item => item !== id) });
+      setForm({ ...form, guru_ids: currentIds.filter(item => item !== id) });
     } else {
-      setForm({ ...form, musyif_ids: [...currentIds, id] });
+      setForm({ ...form, guru_ids: [...currentIds, id] });
     }
   };
 
   const handleSaveClick = () => {
     // Siapkan data display untuk modal konfirmasi
-    const selectedNames = musyifList
-      .filter(m => form.musyif_ids.includes(m.id))
+    const selectedNames = guruList
+      .filter(m => form.guru_ids.includes(m.id))
       .map(m => `${m.first_name} ${m.last_name}`)
       .join(", ");
     
     // Kirim data ke fungsi onSave di KelolaKelasPage.jsx
     onSave({
       ...form,
-      _displayMusyif: selectedNames || "-"
+      _displayGuru: selectedNames || "-"
     });
   };
 
@@ -98,14 +98,14 @@ export const FormKelasModal = ({ mode = "add", onClose, onSave, dataKelas }) => 
         <ModalInput label="Nama Kelas" name="nama_kelas" value={form.nama_kelas} onChange={(e) => setForm({...form, nama_kelas: e.target.value})} />
         
         <div>
-          <label className="block font-[700] text-[#1a1a1a] mb-2 text-[0.95rem]">Pilih Musyif Pengampu</label>
+          <label className="block font-[700] text-[#1a1a1a] mb-2 text-[0.95rem]">Pilih Guru Pengampu</label>
           <div className="bg-[#D9D9D9] rounded-[4px] p-3 max-h-[150px] overflow-y-auto space-y-2 custom-scrollbar">
-            {musyifList.map((m) => (
+            {guruList.map((m) => (
               <label key={m.id} className="flex items-center gap-3 cursor-pointer p-1">
                 <input 
                   type="checkbox" 
-                  checked={form.musyif_ids.includes(m.id)}
-                  onChange={() => handleToggleMusyif(m.id)}
+                  checked={form.guru_ids.includes(m.id)}
+                  onChange={() => handleToggleGuru(m.id)}
                 />
                 <span className="text-slate-800 font-[500]">{m.first_name} {m.last_name}</span>
               </label>
@@ -142,7 +142,7 @@ export const ImportExcelModal = ({ onClose, onSuccess }) => {
     <ModalWrapper title="Import Excel" icon={BiFile} onClose={onClose} size="max-w-md">
       <div className="p-4 text-center">
         <BiFile className={`text-[5rem] mx-auto mb-2 ${file ? 'text-blue-500' : 'text-[#198754] opacity-80'}`} />
-        <p className="text-sm text-slate-500 mb-4">Header: nama_kelas, nip_musyif, target_hafalan (angka)</p>
+        <p className="text-sm text-slate-500 mb-4">Header: nama_kelas, nip_guru, target_hafalan (angka)</p>
         <input type="file" accept=".xlsx, .xls" onChange={(e) => setFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#198754] file:text-white hover:file:bg-[#146c43] cursor-pointer bg-slate-100 rounded-lg border border-slate-200" />
         <button onClick={handleImport} disabled={uploading} className="w-full mt-8 bg-[#198754] text-white font-bold py-3 rounded-[6px] shadow-sm hover:bg-[#157347] transition-all flex justify-center items-center gap-2">{uploading ? "Sedang Proses..." : "Import Sekarang"}</button>
       </div>
@@ -169,8 +169,8 @@ export const ConfirmModal = ({ type = "add", onClose, onConfirm, dataKelas }) =>
         {!isDelete && dataKelas && (
           <div className="bg-slate-50 p-4 rounded-lg text-left mx-auto mb-8 border border-slate-200 text-sm w-full">
             <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Nama Kelas</span><span>: {dataKelas.nama_kelas}</span></div>
-            {/* LOGIKA BARU: Tampilkan Nama Musyif di Konfirmasi */}
-            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Musyif</span><span>: {dataKelas._displayMusyif || dataKelas.nama_musyif || "-"}</span></div>
+            {/* LOGIKA BARU: Tampilkan Nama Guru di Konfirmasi */}
+            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Guru</span><span>: {dataKelas._displayGuru || dataKelas.nama_guru || "-"}</span></div>
             <div className="flex"><span className="w-[100px] font-bold text-slate-700 shrink-0">Target</span><span>: {dataKelas.target_hafalan} Surah</span></div>
           </div>
         )}

@@ -47,8 +47,8 @@ const ModalWrapper = ({ title, icon: Icon, onClose, children, size = "max-w-lg" 
   </div>
 );
 
-// --- 1. MODAL TAMBAH / EDIT MUSYIF (TANPA USERNAME & PASSWORD) ---
-export const FormMusyifModal = ({ mode = "add", onClose, onSave, userData }) => {
+// --- 1. MODAL TAMBAH / EDIT GURU (TANPA USERNAME & PASSWORD) ---
+export const FormGuruModal = ({ mode = "add", onClose, onSave, userData }) => {
   const [form, setForm] = useState({
     first_name: "", last_name: "", gender: "Laki Laki", 
     nip: "", birth_info: "", phone_number: "", email: ""
@@ -61,20 +61,20 @@ export const FormMusyifModal = ({ mode = "add", onClose, onSave, userData }) => 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   return (
-    <ModalWrapper title={mode === "add" ? "Tambah Musyif" : "Edit Musyif"} icon={mode === "add" ? BiPlus : BiPencil} onClose={onClose} size="max-w-3xl">
+    <ModalWrapper title={mode === "add" ? "Tambah Guru" : "Edit Guru"} icon={mode === "add" ? BiPlus : BiPencil} onClose={onClose} size="max-w-3xl">
       <div className="space-y-4">
         {/* LOGIKA: Username & Password dihapus karena menggunakan NIP di Backend */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ModalInput label="Nama Depan Musyif" name="first_name" placeholder="Nama Depan" value={form.first_name} onChange={handleChange} />
-          <ModalInput label="Nama Belakang Musyif" name="last_name" placeholder="Nama Belakang" value={form.last_name} onChange={handleChange} />
+          <ModalInput label="Nama Depan Guru" name="first_name" placeholder="Nama Depan" value={form.first_name} onChange={handleChange} />
+          <ModalInput label="Nama Belakang Guru" name="last_name" placeholder="Nama Belakang" value={form.last_name} onChange={handleChange} />
         </div>
         <ModalRadio label="Jenis Kelamin" name="gender" options={["Laki Laki", "Perempuan"]} value={form.gender} onChange={handleChange} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ModalInput label="NIP (Akan menjadi Username & Pass)" name="nip" placeholder="Masukkan NIP" value={form.nip} onChange={handleChange} />
             <ModalInput label="Tempat, Tanggal Lahir" name="birth_info" placeholder="Contoh: Semarang, 01/01/1985" value={form.birth_info} onChange={handleChange} />
         </div>
-        <ModalInput label="No Telp Musyif" name="phone_number" placeholder="Masukkan Nomor Telp Musyif" value={form.phone_number} onChange={handleChange} />
-        <ModalInput label="Email Musyif" name="email" type="email" placeholder="Masukkan Email" value={form.email} onChange={handleChange} />
+        <ModalInput label="No Telp Guru" name="phone_number" placeholder="Masukkan Nomor Telp Guru" value={form.phone_number} onChange={handleChange} />
+        <ModalInput label="Email Guru" name="email" type="email" placeholder="Masukkan Email" value={form.email} onChange={handleChange} />
         
         <hr className="border-t border-black my-6 -mx-6 opacity-100" />
         <div className="flex flex-row justify-end gap-3">
@@ -96,10 +96,10 @@ export const ImportExcelModal = ({ onClose, onSuccess }) => {
     setUploading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://127.0.0.1:8000/api/musyif/import/", formData, {
+      await axios.post("http://127.0.0.1:8000/api/guru/import/", formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert("Import Data Musyif Berhasil!");
+      alert("Import Data Guru Berhasil!");
       onSuccess();
     } catch (err) { alert("Gagal mengimport data."); }
     finally { setUploading(false); }
@@ -119,7 +119,7 @@ export const ImportExcelModal = ({ onClose, onSuccess }) => {
 export const ConfirmModal = ({ type = "add", onClose, onConfirm, userData }) => {
   const isDelete = type === "delete";
   const iconBg = isDelete ? "bg-[#EF5350]" : "bg-[#4285F4]";
-  const titleText = isDelete ? "Hapus Musyif?" : (type === "edit" ? "Konfirmasi Perubahan" : "Konfirmasi Data Musyif");
+  const titleText = isDelete ? "Hapus Guru?" : (type === "edit" ? "Konfirmasi Perubahan" : "Konfirmasi Data Guru");
   return (
     <div className="fixed inset-0 bg-black/50 z-[1080] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
       <div className="bg-white rounded-[24px] w-full max-w-[480px] p-8 text-center shadow-2xl animate-[zoomIn_0.3s_ease-out]">

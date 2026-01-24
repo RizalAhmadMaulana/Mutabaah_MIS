@@ -91,7 +91,7 @@ const KelolaKelasPage = () => {
     }
   };
 
-  const headers = ["#", "Kelas", "Musyif", "Target Hafalan", "Aksi"];
+  const headers = ["#", "Kelas", "Guru", "Target Hafalan", "Aksi"];
   
   // LOGIKA BARU: Render tabel dinamis sesuai jumlah data (tanpa baris kosong)
   const renderTableBody = () => {
@@ -99,8 +99,8 @@ const KelolaKelasPage = () => {
       <tr key={row.id} className="even:bg-[#f2f2f2] hover:bg-slate-100 transition-colors">
         <td className="border border-black px-3 py-2.5 text-center font-medium">{indexOfFirstItem + idx + 1}</td>
         <td className="border border-black px-3 py-2.5 text-center font-bold">{row.nama_kelas}</td>
-        {/* Field ini otomatis menampilkan daftar nama musyif yang dipisahkan koma */}
-        <td className="border border-black px-3 py-2.5 text-center">{row.nama_musyif || "-"}</td>
+        {/* Field ini otomatis menampilkan daftar nama guru yang dipisahkan koma */}
+        <td className="border border-black px-3 py-2.5 text-center">{row.nama_guru || "-"}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.target_hafalan || "-"}</td>
         <td className="border border-black px-3 py-2.5 text-center">
             <div className="flex gap-2 justify-center">
@@ -174,7 +174,7 @@ const KelolaKelasPage = () => {
             </select> 
             <span>entries</span>
           </div>
-          <input type="text" placeholder="Cari kelas/musyif" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-[150px] sm:w-[200px] border border-gray-300 rounded px-3 py-1.5 outline-none text-sm" />
+          <input type="text" placeholder="Cari kelas/guru" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-[150px] sm:w-[200px] border border-gray-300 rounded px-3 py-1.5 outline-none text-sm" />
         </div>
 
         <div className="border border-black rounded-[4px] overflow-x-auto bg-white mb-4 custom-scrollbar">

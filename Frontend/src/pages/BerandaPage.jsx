@@ -18,7 +18,7 @@ const BerandaPage = () => {
   
   const [data, setData] = useState({
     cards: {
-      total_siswa: 0, total_musyif: 0, total_kelas: 0,
+      total_siswa: 0, total_guru: 0, total_kelas: 0,
       best_student: { name: "-", count: "0 Surah" }
     },
     charts: {
@@ -96,7 +96,7 @@ const BerandaPage = () => {
       {/* GRID KARTU STATISTIK */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard title="Total Siswa" value={`${data.cards.total_siswa} Siswa`} bgColor="#4A90E2" />
-        <StatCard title="Total Musyif" value={`${data.cards.total_musyif} Musyif`} bgColor="#9B51E0" />
+        <StatCard title="Total Guru" value={`${data.cards.total_guru} Guru`} bgColor="#9B51E0" />
         <StatCard title="Total Kelas" value={`${data.cards.total_kelas} kelas`} bgColor="#F2994A" />
         <StatCard 
           title="Progress Terbaik" 

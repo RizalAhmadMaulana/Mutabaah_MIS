@@ -7,7 +7,7 @@ import LaporanPage from "./pages/LaporanPage";
 import SetorHafalanPage from "./pages/SetorHafalanPage"; 
 import KelolaKelasPage from "./pages/KelolaKelasPage";
 import DataSiswaPage from "./pages/DataSiswaPage";
-import DataMusyifPage from "./pages/DataMusyifPage";
+import DataGuruPage from "./pages/DataGuruPage";
 import ManagementUserPage from "./pages/ManagementUserPage";
 
 // --- IMPORT HALAMAN WA GATEWAY ---
@@ -23,17 +23,17 @@ function App() {
         <Route path="/" element={<LoginPage />} />
 
         {/* Akses: Semua Role */}
-        <Route path="/beranda" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}><BerandaPage /></ProtectedRoute>} />
-        <Route path="/laporan" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}><LaporanPage /></ProtectedRoute>} />
-        <Route path="/setting-profile" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF', 'WALI_MURID']}><SettingProfilePage /></ProtectedRoute>} />
+        <Route path="/beranda" element={<ProtectedRoute allowedRoles={['ADMIN', 'GURU', 'WALI_MURID']}><BerandaPage /></ProtectedRoute>} />
+        <Route path="/laporan" element={<ProtectedRoute allowedRoles={['ADMIN', 'GURU', 'WALI_MURID']}><LaporanPage /></ProtectedRoute>} />
+        <Route path="/setting-profile" element={<ProtectedRoute allowedRoles={['ADMIN', 'GURU', 'WALI_MURID']}><SettingProfilePage /></ProtectedRoute>} />
 
-        {/* Akses: Admin & Musyif */}
-        <Route path="/setor" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}><SetorHafalanPage /></ProtectedRoute>} />
-        <Route path="/kelas" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}><KelolaKelasPage /></ProtectedRoute>} />
-        <Route path="/data-siswa" element={<ProtectedRoute allowedRoles={['ADMIN', 'MUSYIF']}><DataSiswaPage /></ProtectedRoute>} />
+        {/* Akses: Admin & Guru */}
+        <Route path="/setor" element={<ProtectedRoute allowedRoles={['ADMIN', 'GURU']}><SetorHafalanPage /></ProtectedRoute>} />
+        <Route path="/kelas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GURU']}><KelolaKelasPage /></ProtectedRoute>} />
+        <Route path="/data-siswa" element={<ProtectedRoute allowedRoles={['ADMIN', 'GURU']}><DataSiswaPage /></ProtectedRoute>} />
 
         {/* Akses: Khusus Admin Saja */}
-        <Route path="/data-musyif" element={<ProtectedRoute allowedRoles={['ADMIN']}><DataMusyifPage /></ProtectedRoute>} />
+        <Route path="/data-guru" element={<ProtectedRoute allowedRoles={['ADMIN']}><DataGuruPage /></ProtectedRoute>} />
         <Route path="/management-user" element={<ProtectedRoute allowedRoles={['ADMIN']}><ManagementUserPage /></ProtectedRoute>} />
 
         {/* --- ROUTE WA GATEWAY (KHUSUS ADMIN) --- */}

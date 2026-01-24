@@ -55,7 +55,7 @@ const TemplateChat = () => {
       .replace(/\[nama_siswa\]/g, "Ahmad Rizal")
       .replace(/\[kelas\]/g, "10-A")
       .replace(/\[tanggal\]/g, new Date().toLocaleDateString('id-ID'))
-      .replace(/\[musyif\]/g, "Ustadz Mansur")
+      .replace(/\[guru\]/g, "Ustadz Mansur")
       .replace(/\[surah\]/g, "Al-Mulk")
       .replace(/\[juz\]/g, "29")
       .replace(/\[ayat\]/g, "1-10")
@@ -96,7 +96,7 @@ const TemplateChat = () => {
           <div className="bg-emerald-50 p-4 text-[0.65rem] text-emerald-800 mb-5 rounded-xl border border-emerald-100 leading-relaxed">
             <p className="font-bold mb-2 uppercase tracking-wider text-[#1B4332]">Tag yang Tersedia (Klik untuk Salin):</p>
             <div className="flex flex-wrap gap-2">
-              {["nama_siswa", "kelas", "tanggal", "musyif", "surah", "juz", "ayat", "jenis", "nilai", "catatan"].map(tag => (
+              {["nama_siswa", "kelas", "tanggal", "guru", "surah", "juz", "ayat", "jenis", "nilai", "catatan"].map(tag => (
                 <button 
                   key={tag} 
                   onClick={() => navigator.clipboard.writeText(`[${tag}]`)}

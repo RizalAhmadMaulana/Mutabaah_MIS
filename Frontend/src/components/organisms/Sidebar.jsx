@@ -34,15 +34,15 @@ const Sidebar = ({ isCollapsed, isActive }) => {
   };
 
   const menuItems = [
-    { path: "/beranda", label: "Beranda", icon: BiHome, roles: ["ADMIN", "MUSYIF", "WALI_MURID"] },
-    { path: "/laporan", label: "Laporan Progress", icon: BiBarChartSquare, roles: ["ADMIN", "MUSYIF", "WALI_MURID"] },
-    { path: "/setor", label: "Setor Hafalan", icon: BiCheckSquare, roles: ["ADMIN", "MUSYIF"] },
-    { path: "/kelas", label: "Kelola Kelas", icon: BiLayer, roles: ["ADMIN", "MUSYIF"] },
+    { path: "/beranda", label: "Beranda", icon: BiHome, roles: ["ADMIN", "GURU", "WALI_MURID"] },
+    { path: "/laporan", label: "Laporan Progress", icon: BiBarChartSquare, roles: ["ADMIN", "GURU", "WALI_MURID"] },
+    { path: "/setor", label: "Setor Hafalan", icon: BiCheckSquare, roles: ["ADMIN", "GURU"] },
+    { path: "/kelas", label: "Kelola Kelas", icon: BiLayer, roles: ["ADMIN", "GURU"] },
   ];
 
   const subMenuItems = [
-    { path: "/data-siswa", label: "Data Siswa", icon: BiUser, roles: ["ADMIN", "MUSYIF"] },
-    { path: "/data-musyif", label: "Data Musyif", icon: BiIdCard, roles: ["ADMIN"] },
+    { path: "/data-siswa", label: "Data Siswa", icon: BiUser, roles: ["ADMIN", "GURU"] },
+    { path: "/data-guru", label: "Data Guru", icon: BiIdCard, roles: ["ADMIN"] },
   ];
 
   const waSubMenuItems = [
@@ -96,7 +96,7 @@ const Sidebar = ({ isCollapsed, isActive }) => {
           ))}
 
           {/* MENU: INPUT DATA */}
-          {["ADMIN", "MUSYIF"].includes(userRole) && (
+          {["ADMIN", "GURU"].includes(userRole) && (
             <div className="pt-2">
               <button onClick={() => !isCollapsed && setInputDataOpen(!isInputDataOpen)} 
                 className={`w-full flex items-center gap-3 px-5 py-3 hover:bg-black/10 text-white/90 transition-all whitespace-nowrap border-l-[4px] border-transparent ${isCollapsed ? "justify-center cursor-default" : "cursor-pointer"}`}>

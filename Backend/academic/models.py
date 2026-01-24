@@ -5,9 +5,9 @@ class Kelas(models.Model):
     nama_kelas = models.CharField(max_length=50, unique=True)
     target_hafalan = models.CharField(max_length=255, blank=True, null=True)
     
-    # LOGIKA: Relasi ke User dengan Role Musyif
-    # on_delete=models.SET_NULL: Jika Musyif dihapus, kelasnya jangan ikut kehapus (musyif jadi kosong)
-    musyif = models.ManyToManyField('accounts.User', related_name='kelas_diampu')
+    # LOGIKA: Relasi ke User dengan Role Guru
+    # on_delete=models.SET_NULL: Jika Guru dihapus, kelasnya jangan ikut kehapus (guru jadi kosong)
+    guru = models.ManyToManyField('accounts.User', related_name='kelas_diampu')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -38,13 +38,13 @@ class SetorHafalan(models.Model):
         limit_choices_to={'role': 'WALI_MURID'}
     )
     
-    # Relasi ke Musyif (Penguji)
-    musyif = models.ForeignKey(
+    # Relasi ke Guru (Penguji)
+    guru = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='hafalan_musyif',
-        limit_choices_to={'role': 'MUSYIF'}
+        related_name='hafalan_guru',
+        limit_choices_to={'role': 'GURU'}
     )
 
     tanggal = models.DateField()

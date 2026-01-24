@@ -9,15 +9,15 @@ from django.contrib.auth import get_user_model
 
 from .serializers import (
     UserSerializer, UpdateProfileSerializer, MyTokenObtainPairSerializer, 
-    ChangePasswordSerializer, ManagementUserSerializer, MusyifSerializer, 
+    ChangePasswordSerializer, ManagementUserSerializer, GuruSerializer, 
     SiswaSerializer
 )
 
 User = get_user_model()
 
-class IsAdminOrMusyif(permissions.BasePermission):
+class IsAdminOrGuru(permissions.BasePermission):
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.role in ['ADMIN', 'MUSYIF'])
+        return bool(request.user and request.user.is_authenticated and request.user.role in ['ADMIN', 'GURU'])
 
 class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -92,7 +92,7 @@ class UserImportExcelView(generics.CreateAPIView):
                     )
                     
                     # Sinkronisasi NIP/NISN berdasarkan role
-                    if role == 'MUSYIF': user.nip = username
+                    if role == 'GURU': user.nip = username
                     elif role == 'WALI_MURID': user.nisn = username
                     user.save()
                     
@@ -101,24 +101,24 @@ class UserImportExcelView(generics.CreateAPIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# --- LOGIC CRUD DATA MUSYIF (FILTER KELAS) ---
-class MusyifViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.filter(role='MUSYIF').order_by('-id')
-    serializer_class = MusyifSerializer
-    permission_classes = [IsAdminOrMusyif]
+# --- LOGIC CRUD DATA GURU (FILTER KELAS) ---
+class GuruViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.filter(role='GURU').order_by('-id')
+    serializer_class = GuruSerializer
+    permission_classes = [IsAdminOrGuru]
     filter_backends = [filters.SearchFilter]
     search_fields = ['first_name', 'last_name', 'nip']
 
-    # PERBAIKAN LOGIK: Filter Musyif berdasarkan kelas yang diampu di tabel academic.Kelas
+    # PERBAIKAN LOGIK: Filter Guru berdasarkan kelas yang diampu di tabel academic.Kelas
     def get_queryset(self):
         queryset = super().get_queryset()
         kelas_param = self.request.query_params.get('kelas')
         if kelas_param:
-            # Kita filter Musyif yang mengajar di kelas_diampu yang nama_kelasnya cocok
+            # Kita filter Guru yang mengajar di kelas_diampu yang nama_kelasnya cocok
             queryset = queryset.filter(kelas_diampu__nama_kelas__iexact=kelas_param).distinct()
         return queryset
 
-class MusyifImportExcelView(generics.CreateAPIView):
+class GuruImportExcelView(generics.CreateAPIView):
     permission_classes = [IsAdminRole]
     parser_classes = (MultiPartParser,)
     def post(self, request, *args, **kwargs):
@@ -133,17 +133,17 @@ class MusyifImportExcelView(generics.CreateAPIView):
                     User.objects.create_user(
                         username=nip_str, first_name=row.get('first_name',''), last_name=row.get('last_name',''),
                         gender=row.get('gender','Laki Laki'), nip=nip_str, birth_info=str(row.get('birth_info','')),
-                        phone_number=str(row.get('phone_number','')), email=row.get('email',''), role='MUSYIF', password=nip_str
+                        phone_number=str(row.get('phone_number','')), email=row.get('email',''), role='GURU', password=nip_str
                     )
                     count += 1
-            return Response({"message": f"Berhasil mengimport {count} Musyif."}, status=status.HTTP_201_CREATED)
+            return Response({"message": f"Berhasil mengimport {count} Guru."}, status=status.HTTP_201_CREATED)
         except Exception as e: return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # --- LOGIKA CRUD DATA SISWA (FILTER KELAS) ---
 class SiswaViewSet(viewsets.ModelViewSet):
     queryset = User.objects.filter(role='WALI_MURID').order_by('first_name')
     serializer_class = SiswaSerializer
-    permission_classes = [IsAdminOrMusyif]
+    permission_classes = [IsAdminOrGuru]
     filter_backends = [filters.SearchFilter]
     search_fields = ['first_name', 'last_name', 'nisn', 'kelas']
 
@@ -155,7 +155,7 @@ class SiswaViewSet(viewsets.ModelViewSet):
         return queryset
 
 class SiswaImportExcelView(generics.CreateAPIView):
-    permission_classes = [IsAdminOrMusyif]
+    permission_classes = [IsAdminOrGuru]
     parser_classes = (MultiPartParser,)
     def post(self, request, *args, **kwargs):
         file = request.FILES.get('file')

@@ -73,7 +73,7 @@ export const FormUserModal = ({ mode = "add", onClose, onSave, userData }) => {
         </div>
         <ModalInput label="Nomor Telephone" name="phone_number" placeholder="Masukkan Nomor Telephone" value={form.phone_number} onChange={handleChange} />
         <ModalInput label="Email" name="email" type="email" placeholder="Masukkan Email" value={form.email} onChange={handleChange} />
-        <ModalInput label="Role" name="role" type="select" options={[{ label: "-- Pilih Role --", value: "" }, { label: "Administrator", value: "ADMIN" }, { label: "Musyif", value: "MUSYIF" }, { label: "Wali Murid", value: "WALI_MURID" }]} value={form.role} onChange={handleChange} />
+        <ModalInput label="Role" name="role" type="select" options={[{ label: "-- Pilih Role --", value: "" }, { label: "Administrator", value: "ADMIN" }, { label: "Guru", value: "GURU" }, { label: "Wali Murid", value: "WALI_MURID" }]} value={form.role} onChange={handleChange} />
         <ModalInput label={mode === "add" ? "Password" : "Password (Kosongkan jika tidak ganti)"} name="password" type="password" placeholder="Masukkan Password" value={form.password} onChange={handleChange} />
         <hr className="border-t border-black my-6 -mx-6 opacity-100" />
         <div className="flex flex-row justify-end gap-3">
@@ -132,7 +132,7 @@ export const ConfirmModal = ({ type = "add", onClose, onConfirm, userData }) => 
   const isDelete = type === "delete";
   const iconBg = isDelete ? "bg-[#EF5350]" : "bg-[#4285F4]";
   const titleText = isDelete ? "Hapus User?" : (type === "edit" ? "Konfirmasi Perubahan" : "Konfirmasi Data");
-  const getRoleLabel = (r) => r === "ADMIN" ? "Administrator" : r === "MUSYIF" ? "Musyif" : "Wali Murid";
+  const getRoleLabel = (r) => r === "ADMIN" ? "Administrator" : r === "GURU" ? "Guru" : "Wali Murid";
   
   return (
     <div className="fixed inset-0 bg-black/50 z-[1080] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">

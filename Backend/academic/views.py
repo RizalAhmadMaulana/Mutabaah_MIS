@@ -38,9 +38,9 @@ def send_auto_wa(instance):
         template = WATemplate.objects.get(nama='setor_hafalan')
         pesan_raw = template.pesan
         
-        # 2. Ambil data santri dan musyif dari instance hafalan
+        # 2. Ambil data santri dan guru dari instance hafalan
         siswa = instance.siswa
-        musyif = instance.musyif
+        guru = instance.guru
         nomor_wa = siswa.phone_number
         
         if not nomor_wa:
@@ -52,7 +52,7 @@ def send_auto_wa(instance):
             "[nama_siswa]": f"{siswa.first_name} {siswa.last_name}",
             "[kelas]": getattr(siswa, 'kelas', '-'),
             "[tanggal]": instance.tanggal.strftime('%d/%m/%Y'),
-            "[musyif]": f"{musyif.first_name} {musyif.last_name}",
+            "[guru]": f"{guru.first_name} {guru.last_name}",
             "[surah]": instance.surah,
             "[juz]": str(instance.juz),
             "[ayat]": instance.ayat or "-",
@@ -94,9 +94,9 @@ def send_auto_wa(instance):
     except Exception as e:
         print(f"Auto WA Error: {str(e)}")
 
-class IsAdminOrMusyif(permissions.BasePermission):
+class IsAdminOrGuru(permissions.BasePermission):
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.role in ['ADMIN', 'MUSYIF'])
+        return bool(request.user and request.user.is_authenticated and request.user.role in ['ADMIN', 'GURU'])
 
 class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -108,11 +108,11 @@ class KelasViewSet(viewsets.ModelViewSet):
     serializer_class = KelasSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['nama_kelas', 'musyif__first_name', 'musyif__last_name']
+    search_fields = ['nama_kelas', 'guru__first_name', 'guru__last_name']
 
 # --- IMPORT EXCEL KELAS ---
 class KelasImportExcelView(generics.CreateAPIView):
-    permission_classes = [IsAdminOrMusyif]
+    permission_classes = [IsAdminOrGuru]
     parser_classes = (MultiPartParser,)
 
     def post(self, request, *args, **kwargs):
@@ -123,12 +123,12 @@ class KelasImportExcelView(generics.CreateAPIView):
             df = pd.read_excel(file)
             count = 0
             for index, row in df.iterrows():
-                nip = str(row['nip_musyif'])
-                musyif_obj = User.objects.filter(username=nip, role='MUSYIF').first()
+                nip = str(row['nip_guru'])
+                guru_obj = User.objects.filter(username=nip, role='GURU').first()
                 Kelas.objects.update_or_create(
                     nama_kelas=row['nama_kelas'],
                     defaults={
-                        'musyif': musyif_obj,
+                        'guru': guru_obj,
                         'target_hafalan': str(row.get('target_hafalan', '0'))
                     }
                 )
@@ -166,14 +166,14 @@ class HafalanImportExcelView(generics.CreateAPIView):
             count = 0
             for index, row in df.iterrows():
                 nisn = str(row['nisn_siswa'])
-                nip = str(row['nip_musyif'])
+                nip = str(row['nip_guru'])
                 siswa_obj = User.objects.filter(nisn=nisn, role='WALI_MURID').first()
-                musyif_obj = User.objects.filter(username=nip, role='MUSYIF').first()
+                guru_obj = User.objects.filter(username=nip, role='GURU').first()
                 if not siswa_obj: continue
 
                 SetorHafalan.objects.create(
                     siswa=siswa_obj,
-                    musyif=musyif_obj,
+                    guru=guru_obj,
                     tanggal=pd.to_datetime(row['tanggal']).date(),
                     juz=str(row['juz']),
                     surah=str(row['surah']),
@@ -406,7 +406,7 @@ class DashboardViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def summary(self, request):
         total_siswa = User.objects.filter(role='WALI_MURID').count()
-        total_musyif = User.objects.filter(role='MUSYIF').count()
+        total_guru = User.objects.filter(role='GURU').count()
         total_kelas = Kelas.objects.count()
         best_progress = SetorHafalan.objects.values('siswa__first_name', 'siswa__last_name').annotate(total_surah=Count('surah', distinct=True)).order_by('-total_surah').first()
         top_student = f"{best_progress['siswa__first_name']} {best_progress['siswa__last_name']}" if best_progress else "-"
@@ -445,6 +445,6 @@ class DashboardViewSet(viewsets.ViewSet):
                 d_p.append(base_qs.filter(tanggal__lte=last_d).values('surah').distinct().count())
 
         return Response({
-            "cards": {"total_siswa": total_siswa, "total_musyif": total_musyif, "total_kelas": total_kelas, "best_student": {"name": top_student, "count": f"{top_count} Surah"}},
+            "cards": {"total_siswa": total_siswa, "total_guru": total_guru, "total_kelas": total_kelas, "best_student": {"name": top_student, "count": f"{top_count} Surah"}},
             "charts": {"nilai": d_nilai, "progress": {"labels": l_p, "data": d_p}}
         })

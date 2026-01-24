@@ -7,40 +7,40 @@ import {
   BiPencil, 
   BiTrash
 } from "react-icons/bi";
-import { FormMusyifModal, ImportExcelModal, ConfirmModal } from "../components/organisms/DataMusyifModals";
+import { FormGuruModal, ImportExcelModal, ConfirmModal } from "../components/organisms/DataGuruModals";
 
-const DataMusyifPage = () => {
+const DataGuruPage = () => {
   const [activeModal, setActiveModal] = useState(null);
   
   // LOGIKA: State Data & Kontrol
-  const [musyifs, setMusyifs] = useState([]);
+  const [gurus, setGurus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState(""); // State Search
-  const [selectedMusyif, setSelectedMusyif] = useState(null);
+  const [selectedGuru, setSelectedGuru] = useState(null);
   const [tempFormData, setTempFormData] = useState(null);
 
   // LOGIKA: State Pagination & Show Entries
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
 
-  // LOGIKA: Fungsi ambil data musyif (Dengan Search Params)
-  const fetchMusyifs = async () => {
+  // LOGIKA: Fungsi ambil data guru (Dengan Search Params)
+  const fetchGurus = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`http://127.0.0.1:8000/api/musyif/?search=${searchTerm}`, {
+      const response = await axios.get(`http://127.0.0.1:8000/api/guru/?search=${searchTerm}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMusyifs(response.data);
+      setGurus(response.data);
       setLoading(false);
     } catch (err) {
-      console.error("Gagal mengambil data musyif:", err);
+      console.error("Gagal mengambil data guru:", err);
       setLoading(false);
     }
   };
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchMusyifs();
+      fetchGurus();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
@@ -53,8 +53,8 @@ const DataMusyifPage = () => {
   // LOGIKA: Hitung data yang tampil di halaman saat ini
   const indexOfLastItem = currentPage * entriesPerPage;
   const indexOfFirstItem = indexOfLastItem - entriesPerPage;
-  const currentItems = musyifs.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(musyifs.length / entriesPerPage);
+  const currentItems = gurus.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(gurus.length / entriesPerPage);
 
   const handleRequestConfirm = (formData) => {
     setTempFormData(formData);
@@ -66,8 +66,8 @@ const DataMusyifPage = () => {
       const token = localStorage.getItem("token");
       const isEdit = activeModal === 'confirm-edit';
       const url = isEdit 
-        ? `http://127.0.0.1:8000/api/musyif/${tempFormData.id}/` 
-        : "http://127.0.0.1:8000/api/musyif/";
+        ? `http://127.0.0.1:8000/api/guru/${tempFormData.id}/` 
+        : "http://127.0.0.1:8000/api/guru/";
       const method = isEdit ? "patch" : "post";
 
       await axios[method](url, tempFormData, {
@@ -76,33 +76,33 @@ const DataMusyifPage = () => {
       
       setActiveModal(null);
       setTempFormData(null);
-      fetchMusyifs(); 
-      alert(isEdit ? "Data Musyif berhasil diubah!" : "Musyif baru berhasil ditambahkan!");
+      fetchGurus(); 
+      alert(isEdit ? "Data Guru berhasil diubah!" : "Guru baru berhasil ditambahkan!");
     } catch (err) {
       console.error(err);
-      alert("Gagal memproses data musyif.");
+      alert("Gagal memproses data guru.");
     }
   };
 
-  const handleOpenDelete = (musyif) => {
-    setSelectedMusyif(musyif);
+  const handleOpenDelete = (guru) => {
+    setSelectedGuru(guru);
     setActiveModal('confirm-delete');
   };
 
   const handleFinalDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://127.0.0.1:8000/api/musyif/${selectedMusyif.id}/`, {
+      await axios.delete(`http://127.0.0.1:8000/api/guru/${selectedGuru.id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveModal(null);
-      fetchMusyifs();
+      fetchGurus();
     } catch (err) {
       alert("Gagal menghapus data");
     }
   };
 
-  const headers = ["#", "Nama Musyif", "Jenis Kelamin", "NIP", "Kelas Ampu", "Tempat, Tanggal Lahir", "No Telp Musyif", "Aksi"];
+  const headers = ["#", "Nama Guru", "Jenis Kelamin", "NIP", "Kelas Ampu", "Tempat, Tanggal Lahir", "No Telp Guru", "Aksi"];
 
   const renderTableBody = () => {
     // Tampilkan data yang sudah di-slice berdasarkan show entries
@@ -122,7 +122,7 @@ const DataMusyifPage = () => {
             <td className="border border-black px-3 py-2.5 text-center whitespace-nowrap">
               <div className="flex gap-2 justify-center items-center">
                 <button 
-                  onClick={() => { setSelectedMusyif(row); setActiveModal('edit'); }}
+                  onClick={() => { setSelectedGuru(row); setActiveModal('edit'); }}
                   className="bg-[#2ECC71] text-white py-[4px] px-[12px] rounded-[4px] text-[0.85rem] font-[600] flex items-center gap-1.5 hover:bg-[#27ae60] transition-all"
                 >
                   <BiPencil className="text-[1rem]" /> Edit
@@ -144,11 +144,11 @@ const DataMusyifPage = () => {
   };
 
   return (
-    <DashboardLayout title="Data Musyif">
+    <DashboardLayout title="Data Guru">
       {(activeModal === 'add' || activeModal === 'edit') && (
-        <FormMusyifModal 
+        <FormGuruModal 
           mode={activeModal} 
-          userData={selectedMusyif}
+          userData={selectedGuru}
           onClose={() => setActiveModal(null)} 
           onSave={handleRequestConfirm} 
         />
@@ -157,17 +157,17 @@ const DataMusyifPage = () => {
       {activeModal === 'import' && (
         <ImportExcelModal 
           onClose={() => setActiveModal(null)} 
-          onSuccess={() => { setActiveModal(null); fetchMusyifs(); }} 
+          onSuccess={() => { setActiveModal(null); fetchGurus(); }} 
         />
       )}
       
       {activeModal === 'confirm-add' && <ConfirmModal type="add" userData={tempFormData} onClose={() => setActiveModal('add')} onConfirm={handleFinalAction} />}
       {activeModal === 'confirm-edit' && <ConfirmModal type="edit" userData={tempFormData} onClose={() => setActiveModal('edit')} onConfirm={handleFinalAction} />}
-      {activeModal === 'confirm-delete' && <ConfirmModal type="delete" userData={selectedMusyif} onClose={() => setActiveModal(null)} onConfirm={handleFinalDelete} />}
+      {activeModal === 'confirm-delete' && <ConfirmModal type="delete" userData={selectedGuru} onClose={() => setActiveModal(null)} onConfirm={handleFinalDelete} />}
 
       <div className="flex flex-row gap-3 mb-6">
-        <button onClick={() => { setSelectedMusyif(null); setActiveModal('add'); }} className="bg-[#5294A9] text-white rounded-[4px] px-3 py-2.5 font-[600] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm w-1/2 sm:w-auto text-[0.85rem] sm:text-base whitespace-nowrap">
-          <BiPlus className="text-xl shrink-0" /> Tambah Musyif
+        <button onClick={() => { setSelectedGuru(null); setActiveModal('add'); }} className="bg-[#5294A9] text-white rounded-[4px] px-3 py-2.5 font-[600] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm w-1/2 sm:w-auto text-[0.85rem] sm:text-base whitespace-nowrap">
+          <BiPlus className="text-xl shrink-0" /> Tambah Guru
         </button>
         <button onClick={() => setActiveModal('import')} className="bg-[#8CB14E] text-white rounded-[4px] px-3 py-2.5 font-[600] flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm w-1/2 sm:w-auto text-[0.85rem] sm:text-base whitespace-nowrap">
           <BiFile className="text-xl shrink-0" /> Import Excel
@@ -212,7 +212,7 @@ const DataMusyifPage = () => {
               </tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan={8} className="text-center p-10 font-bold text-slate-400">Memuat data musyif...</td></tr> : renderTableBody()}
+              {loading ? <tr><td colSpan={8} className="text-center p-10 font-bold text-slate-400">Memuat data guru...</td></tr> : renderTableBody()}
             </tbody>
           </table>
         </div>
@@ -220,7 +220,7 @@ const DataMusyifPage = () => {
         <div className="flex flex-row justify-between items-center text-[0.8rem] sm:text-[0.85rem] font-[600] mt-2">
           {/* LOGIKA: Info Entries Dinamis */}
           <div className="text-slate-600">
-            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, musyifs.length)} of {musyifs.length} entries
+            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, gurus.length)} of {gurus.length} entries
           </div>
           <div className="flex border border-gray-300 rounded-[4px] overflow-hidden shadow-sm scale-90 sm:scale-100 origin-right">
             <button 
@@ -245,4 +245,4 @@ const DataMusyifPage = () => {
   );
 };
 
-export default DataMusyifPage;
+export default DataGuruPage;

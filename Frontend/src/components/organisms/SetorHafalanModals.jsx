@@ -216,7 +216,7 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
   const initialForm = {
     selected_kelas: "", 
     siswa: "", 
-    musyif: "", 
+    guru: "", 
     tanggal: new Date().toISOString().split('T')[0], 
     juz: "", 
     surah: "", 
@@ -229,7 +229,7 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
   const [form, setForm] = useState(initialForm);
   const [kelasList, setKelasList] = useState([]);
   const [siswaList, setSiswaList] = useState([]);
-  const [musyifList, setMusyifList] = useState([]);
+  const [guruList, setGuruList] = useState([]);
   const [filteredSurahs, setFilteredSurahs] = useState([]);
 
   useEffect(() => {
@@ -253,9 +253,9 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
     if (mode === "edit" && dataHafalan) {
       setForm({
         ...dataHafalan,
-        // Pastikan key 'siswa' dan 'musyif' sesuai dengan serializer baru
+        // Pastikan key 'siswa' dan 'guru' sesuai dengan serializer baru
         siswa: dataHafalan.siswa_id || dataHafalan.siswa || "",
-        musyif: dataHafalan.musyif_id || dataHafalan.musyif || "",
+        guru: dataHafalan.guru_id || dataHafalan.guru || "",
         selected_kelas: dataHafalan.nama_kelas || "" 
       });
       // Load data filter sesuai kelas yang diedit
@@ -265,11 +265,11 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
     }
   }, [mode, dataHafalan]);
 
-  // LOGIKA UTAMA: Filter Siswa DAN Musyif berdasarkan Kelas
+  // LOGIKA UTAMA: Filter Siswa DAN Guru berdasarkan Kelas
   const fetchByKelas = async (namaKelas) => {
     if (!namaKelas) {
         setSiswaList([]);
-        setMusyifList([]);
+        setGuruList([]);
         return;
     }
     try {
@@ -277,9 +277,9 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
       const headers = { Authorization: `Bearer ${token}` };
       
       // Hit endpoint dengan query param ?kelas=
-      const [resSiswa, resMusyif] = await Promise.all([
+      const [resSiswa, resGuru] = await Promise.all([
         axios.get(`http://127.0.0.1:8000/api/siswa/?kelas=${namaKelas}`, { headers }),
-        axios.get(`http://127.0.0.1:8000/api/musyif/?kelas=${namaKelas}`, { headers })
+        axios.get(`http://127.0.0.1:8000/api/guru/?kelas=${namaKelas}`, { headers })
       ]);
       
       setSiswaList([
@@ -287,9 +287,9 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
         ...resSiswa.data.map(s => ({ value: s.id, label: `${s.first_name} ${s.last_name}` }))
       ]);
 
-      setMusyifList([
-        { value: "", label: "-- Pilih Musyif --" },
-        ...resMusyif.data.map(m => ({ value: m.id, label: `${m.first_name} ${m.last_name}` }))
+      setGuruList([
+        { value: "", label: "-- Pilih Guru --" },
+        ...resGuru.data.map(m => ({ value: m.id, label: `${m.first_name} ${m.last_name}` }))
       ]);
 
     } catch (err) { console.error("Gagal load data filter kelas", err); }
@@ -312,7 +312,7 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
 
     // LOGIKA: Trigger filter saat kelas dipilih
     if (name === "selected_kelas") {
-      setForm(prev => ({ ...prev, selected_kelas: value, siswa: "", musyif: "" }));
+      setForm(prev => ({ ...prev, selected_kelas: value, siswa: "", guru: "" }));
       fetchByKelas(value);
     }
 
@@ -327,7 +327,7 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
 
   const handleSaveClick = () => {
     const s = siswaList.find(i => String(i.value) === String(form.siswa));
-    const m = musyifList.find(i => String(i.value) === String(form.musyif));
+    const m = guruList.find(i => String(i.value) === String(form.guru));
     
     // Hapus temporary UI field sebelum simpan
     const { selected_kelas, ...cleanForm } = form;
@@ -335,7 +335,7 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
     onSave({
         ...cleanForm,
         _displaySiswa: s ? s.label : "-",
-        _displayMusyif: m ? m.label : "-"
+        _displayGuru: m ? m.label : "-"
     });
   };
 
@@ -360,13 +360,13 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ModalInput label="Tanggal" name="tanggal" type="date" value={form.tanggal} onChange={handleChange} />
             
-            {/* LOGIKA: Musyif Pengampu Terfilter */}
+            {/* LOGIKA: Guru Pengampu Terfilter */}
             <ModalInput 
-                label="3. Musyif Pengampu" 
-                name="musyif" 
+                label="3. Guru Pengampu" 
+                name="guru" 
                 type="select" 
-                options={form.selected_kelas ? musyifList : [{value:"", label:"-- Pilih Kelas Dulu --"}]} 
-                value={form.musyif} 
+                options={form.selected_kelas ? guruList : [{value:"", label:"-- Pilih Kelas Dulu --"}]} 
+                value={form.guru} 
                 onChange={handleChange} 
                 disabled={!form.selected_kelas} 
             />
@@ -423,7 +423,7 @@ export const ImportExcelModal = ({ onClose, onSuccess }) => {
     <ModalWrapper title="Import Excel" icon={BiFile} onClose={onClose} size="max-w-md">
       <div className="p-4 text-center">
         <BiFile className={`text-[5rem] mx-auto mb-2 ${file ? 'text-blue-500' : 'text-[#198754] opacity-80'}`} />
-        <p className="text-sm text-slate-500 mb-4">Header: nisn_siswa, nip_musyif, tanggal, juz, surah, ayat, jenis, nilai, catatan</p>
+        <p className="text-sm text-slate-500 mb-4">Header: nisn_siswa, nip_guru, tanggal, juz, surah, ayat, jenis, nilai, catatan</p>
         <input type="file" accept=".xlsx, .xls" onChange={(e) => setFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#198754] file:text-white hover:file:bg-[#146c43] cursor-pointer bg-slate-100 rounded-lg border border-slate-200" />
         <button onClick={handleImport} disabled={uploading} className="w-full mt-8 bg-[#198754] text-white font-bold py-3 rounded-[6px] shadow-sm hover:bg-[#157347] transition-all flex justify-center items-center gap-2">{uploading ? "Sedang Proses..." : "Import Sekarang"}</button>
       </div>
@@ -452,7 +452,7 @@ export const ConfirmModal = ({ type = "save", onClose, onConfirm, dataHafalan })
           <div className="bg-slate-50 p-4 rounded-lg text-left mx-auto mb-8 border border-slate-200 text-sm w-full">
             <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Nama Siswa</span><span>: {dataHafalan._displaySiswa || dataHafalan.nama_siswa || "-"}</span></div>
             <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Surah</span><span>: {dataHafalan.surah}</span></div>
-            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Musyif</span><span>: {dataHafalan._displayMusyif || dataHafalan.nama_musyif || "-"}</span></div>
+            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Guru</span><span>: {dataHafalan._displayGuru || dataHafalan.nama_guru || "-"}</span></div>
             <div className="flex"><span className="w-[100px] font-bold text-slate-700 shrink-0">Juz</span><span>: {dataHafalan.juz}</span></div>
           </div>
         )}

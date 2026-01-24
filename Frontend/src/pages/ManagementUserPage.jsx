@@ -86,7 +86,7 @@ const ManagementUserPage = () => {
   };
 
   const renderRoleBadge = (role) => {
-    let bg = role === "ADMIN" ? "bg-[#1B4332]" : role === "MUSYIF" ? "bg-[#5294A9]" : "bg-[#007BFF]";
+    let bg = role === "ADMIN" ? "bg-[#1B4332]" : role === "GURU" ? "bg-[#5294A9]" : "bg-[#007BFF]";
     return <span className={`${bg} text-white px-3 py-1.5 rounded-[6px] text-[0.75rem] font-[700] min-w-[110px] inline-block text-center shadow-sm uppercase`}>{role}</span>;
   };
 
