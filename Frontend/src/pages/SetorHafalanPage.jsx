@@ -71,6 +71,7 @@ const SetorHafalanPage = () => {
       setTempFormData(null);
       // Refresh tabel agar status WA "Terkirim" muncul
       fetchHafalan(); 
+      alert(tempFormData.trigger_wa ? "Data disimpan & Notifikasi WA dikirim!" : "Data berhasil disimpan ke database.");
     } catch (err) {
       alert("Gagal memproses data hafalan.");
     }
@@ -101,7 +102,7 @@ const SetorHafalanPage = () => {
   const headers = [
     "#", "Nama Siswa", "Kelas", "Tanggal", "Guru", 
     "Surah", "Juz", "Ayat", "Jenis", "Nilai", 
-    "Catatan", "Status WA", "Aksi"
+    "Catatan", "Adab & Karakter", "Status WA", "Aksi"
   ];
 
   const renderTableBody = () => {
@@ -116,19 +117,34 @@ const SetorHafalanPage = () => {
         <td className="border border-black px-3 py-2.5 text-center">{row.juz}</td>
         <td className="border border-black px-3 py-2.5 text-center">{row.ayat}</td>
         <td className="border border-black px-3 py-2.5 text-center">
-            <span className={`px-2 py-1 rounded text-xs font-bold ${row.jenis_setoran === 'Ziyadah' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+            <span className={`px-2 py-1 rounded text-xs font-bold ${row.jenis_setoran === 'Ziyadah(Hafalan Baru)' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                 {row.jenis_setoran}
             </span>
         </td>
         <td className="border border-black px-3 py-2.5 text-center font-bold text-lg">{row.nilai}</td>
         {/* Kolom Catatan */}
         <td className="border border-black px-3 py-2.5 text-center truncate max-w-[150px] italic text-slate-600">{row.catatan || "-"}</td>
+        {/* KOLOM ADAB BARU */}
+        <td className="border border-black px-3 py-2.5 text-center">
+            <div className="flex flex-col items-center">
+                <span className="font-black text-[0.85rem] text-[#1B4332]">{row.skor_adab || 0}</span>
+                <span className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-tight">{row.predikat_adab || "-"}</span>
+            </div>
+        </td>
         {/* Kolom Status WA Pill */}
         <td className="border border-black px-3 py-2.5 text-center">
-            {row.wa_sent ? (
-                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[0.7rem] font-bold uppercase tracking-tighter">Terkirim ✓</span>
+            {row.wa_status === 'sent' ? (
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[0.65rem] font-bold uppercase tracking-tighter border border-green-200">
+                   ✓ Terkirim
+                </span>
+            ) : row.wa_status === 'failed' ? (
+                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[0.65rem] font-bold uppercase tracking-tighter border border-red-200">
+                   ✗ Gagal
+                </span>
             ) : (
-                <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[0.7rem] font-bold uppercase tracking-tighter">Gagal ✗</span>
+                <span className="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[0.65rem] font-bold uppercase tracking-tighter border border-slate-300">
+                   Belum Dikirim
+                </span>
             )}
         </td>
         <td className="border border-black px-3 py-2.5 text-center">

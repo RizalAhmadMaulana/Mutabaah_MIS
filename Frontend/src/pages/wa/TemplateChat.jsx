@@ -7,7 +7,7 @@ const TemplateChat = () => {
   const [template, setTemplate] = useState({ id: "", nama: "setor_hafalan", pesan: "" });
   const [loading, setLoading] = useState(true);
   const [isExist, setIsExist] = useState(false);
-  const [lastSaved, setLastSaved] = useState(null); // Tandai waktu terakhir simpan
+  const [lastSaved, setLastSaved] = useState(null);
 
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -41,14 +41,14 @@ const TemplateChat = () => {
         setIsExist(true);
         setTemplate(res.data);
       }
-      setLastSaved(new Date().toLocaleTimeString()); // Update tanda waktu
+      setLastSaved(new Date().toLocaleTimeString());
       alert("✓ Template Berhasil Disimpan!");
     } catch (err) {
       alert("Gagal menyimpan! Pastikan server Backend aktif.");
     }
   };
 
-  // Fungsi untuk mensimulasikan tampilan tag dengan data contoh
+  // UPDATE: Logic Simulasi Tag Baru
   const renderPreview = (text) => {
     if (!text) return "Isi template untuk melihat pratinjau...";
     return text
@@ -59,10 +59,21 @@ const TemplateChat = () => {
       .replace(/\[surah\]/g, "Al-Mulk")
       .replace(/\[juz\]/g, "29")
       .replace(/\[ayat\]/g, "1-10")
-      .replace(/\[jenis\]/g, "Ziyadah")
+      .replace(/\[jenis\]/g, "Ziyadah(Hafalan Baru)")
       .replace(/\[nilai\]/g, "A (Mumtaz)")
-      .replace(/\[catatan\]/g, "Makhraj sudah bagus, pertahankan.");
+      .replace(/\[catatan\]/g, "Makhraj sudah bagus, pertahankan.")
+      // DATA DUMMY UNTUK ADAB
+      .replace(/\[skor_adab\]/g, "80")
+      .replace(/\[predikat_adab\]/g, "BAIK (B)")
+      .replace(/\[ket_adab\]/g, "Membudaya. Sering menunjukkan perilaku positif. Kadang masih melakukan kesalahan kecil.");
   };
+
+  // DAFTAR TAG UNTUK TOMBOL
+  const availableTags = [
+    "nama_siswa", "kelas", "tanggal", "guru", 
+    "surah", "juz", "ayat", "jenis", "nilai", "catatan",
+    "skor_adab", "predikat_adab", "ket_adab" // TAG BARU
+  ];
 
   if (loading) {
     return (
@@ -96,7 +107,7 @@ const TemplateChat = () => {
           <div className="bg-emerald-50 p-4 text-[0.65rem] text-emerald-800 mb-5 rounded-xl border border-emerald-100 leading-relaxed">
             <p className="font-bold mb-2 uppercase tracking-wider text-[#1B4332]">Tag yang Tersedia (Klik untuk Salin):</p>
             <div className="flex flex-wrap gap-2">
-              {["nama_siswa", "kelas", "tanggal", "guru", "surah", "juz", "ayat", "jenis", "nilai", "catatan"].map(tag => (
+              {availableTags.map(tag => (
                 <button 
                   key={tag} 
                   onClick={() => navigator.clipboard.writeText(`[${tag}]`)}
@@ -125,10 +136,9 @@ const TemplateChat = () => {
           </div>
         </div>
 
-        {/* PANEL KANAN: PRATINJAU WHATSAPP (Baru) */}
+        {/* PANEL KANAN: PRATINJAU WHATSAPP */}
         <div className="flex flex-col gap-4">
           <div className="bg-[#E5DDD5] rounded-2xl shadow-lg overflow-hidden border-4 border-white h-[580px] relative flex flex-col">
-            {/* Header WhatsApp */}
             <div className="bg-[#075E54] p-4 flex items-center gap-3 shrink-0">
                <div className="w-10 h-10 bg-slate-300 rounded-full flex-shrink-0" />
                <div className="flex-1">
@@ -138,7 +148,6 @@ const TemplateChat = () => {
                <BiShow className="text-white text-xl" />
             </div>
 
-            {/* Chat Body */}
             <div className="flex-1 p-4 overflow-y-auto pattern-wa flex flex-col justify-end">
               <div className="bg-white self-start max-w-[90%] p-3 rounded-tr-xl rounded-b-xl shadow-sm relative text-sm text-slate-800 leading-relaxed whitespace-pre-wrap animate-[fadeIn_0.3s]">
                 {renderPreview(template.pesan)}
@@ -153,7 +162,6 @@ const TemplateChat = () => {
               </div>
             </div>
 
-            {/* Fake Keyboard Area */}
             <div className="bg-[#F0F2F5] p-3 border-t border-slate-200">
                <div className="bg-white rounded-full px-4 py-2 text-slate-400 text-xs border border-slate-100 shadow-sm">
                   Ketik pesan...
@@ -165,8 +173,7 @@ const TemplateChat = () => {
              <div className="flex gap-3">
                 <BiInfoCircle className="text-blue-500 text-xl shrink-0" />
                 <p className="text-[0.7rem] text-blue-800 leading-relaxed">
-                   <b>Tips:</b> Panel di atas adalah simulasi tampilan di HP orang tua santri. 
-                   Data <b>Ahmad Rizal</b> dkk hanyalah contoh, saat pengiriman asli tag tersebut akan otomatis diganti sesuai data santri di menu <b>Setor Hafalan</b>.
+                   <b>Tips:</b> Gunakan tag baru <b>[skor_adab]</b>, <b>[predikat_adab]</b>, dan <b>[ket_adab]</b> untuk menampilkan hasil penilaian karakter pada laporan.
                 </p>
              </div>
           </div>

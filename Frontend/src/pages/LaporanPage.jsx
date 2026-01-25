@@ -189,7 +189,7 @@ const LaporanPage = () => {
           <table className="w-full border-collapse min-w-[1100px]">
             <thead>
               <tr className="bg-white">
-                {["No", "Tanggal", "Nama Siswa", "Surah", "Juz", "Ayat", "Jenis", "Nilai", "Catatan"].map((h, i) => (
+                {["No", "Tanggal", "Nama Siswa", "Surah", "Juz", "Ayat", "Jenis", "Nilai", "Catatan", "Adab & Karakter"].map((h, i) => (
                   <th key={i} className="border border-black px-3 py-3 text-center font-[700] text-black text-[0.85rem] uppercase">{h}</th>
                 ))}
               </tr>
@@ -207,6 +207,12 @@ const LaporanPage = () => {
                   <td className="border border-black p-2.5 text-center">{item.jenis_setoran}</td>
                   <td className="border border-black p-2.5 text-center font-bold">{item.nilai}</td>
                   <td className="border border-black p-2.5 italic text-slate-600">{item.catatan || "-"}</td>
+                  <td className="border border-black px-3 py-2.5 text-center">
+                    <div className="flex flex-col items-center">
+                        <span className="font-black text-[0.85rem] text-[#1B4332]">{item.skor_adab || 0}</span>
+                        <span className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-tight">{item.predikat_adab || "-"}</span>
+                    </div>
+                  </td>
                 </tr>
               )) : <tr><td colSpan={9} className="border border-black p-10 text-center text-slate-400">Data tidak ditemukan.</td></tr>}
             </tbody>
@@ -265,7 +271,7 @@ const LaporanPage = () => {
           <table className="w-full border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-white">
-                {["No", "Tanggal", "Nama Siswa", "Surah", "Jenis", "Nilai", "Catatan"].map((h, i) => (
+                {["No", "Tanggal", "Nama Siswa", "Surah", "Jenis", "Nilai", "Catatan", "Adab & Karakter"].map((h, i) => (
                   <th key={i} className="border border-black px-3 py-3 text-center font-[700] text-black text-[0.85rem] uppercase">{h}</th>
                 ))}
               </tr>
@@ -281,6 +287,12 @@ const LaporanPage = () => {
                   <td className="border border-black p-2.5 text-center">{item.jenis_setoran}</td>
                   <td className="border border-black p-2.5 text-center font-bold text-green-700">{item.nilai}</td>
                   <td className="border border-black p-2.5 italic text-slate-600">{item.catatan || "-"}</td>
+                  <td className="border border-black px-3 py-2.5 text-center">
+                    <div className="flex flex-col items-center">
+                        <span className="font-black text-[0.85rem] text-[#1B4332]">{item.skor_adab || 0}</span>
+                        <span className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-tight">{item.predikat_adab || "-"}</span>
+                    </div>
+                  </td>
                 </tr>
               )) : <tr><td colSpan={7} className="border border-black p-10 text-center text-slate-400">Data kosong.</td></tr>}
             </tbody>

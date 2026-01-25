@@ -7,7 +7,8 @@ import {
   BiPlus, 
   BiPencil, 
   BiX,
-  BiCheck
+  BiCheck,
+  BiLogoWhatsapp
 } from "react-icons/bi";
 
 // --- DATABASE LENGKAP AL-QURAN (JUZ 1 - 30) ---
@@ -211,6 +212,54 @@ const ModalWrapper = ({ title, icon: Icon, onClose, children, size = "max-w-lg" 
   </div>
 );
 
+// --- DATA KRITERIA ADAB (Sesuai Request/Gambar) ---
+const ADAB_LIST = [
+  {
+    key: "adab_1", 
+    label: "1. Integritas dan Kejujuran",
+    items: [
+      "Sering tidak jujur, manipulatif, dan menyalahkan orang lain.",
+      "Kurang terbuka, hanya jujur jika didesak atau ketahuan salah.",
+      "Cukup jujur secara umum, namun pasif dalam mengakui kesalahan.",
+      "Konsisten berkata jujur, amanah, dan berani mengakui kesalahan.",
+      "Sangat transparan, anti-kecurangan, dan menjadi teladan integritas."
+    ]
+  },
+  {
+    key: "adab_2", 
+    label: "2. Sopan Santun (Respect)",
+    items: [
+      "Bicara kasar, sering menyela, dan tidak menghargai orang lain.",
+      "Nada bicara kurang sopan (ketus) atau bahasa tubuh tidak hormat.",
+      "Berbahasa baik, namun jarang mengucap Maaf, Tolong, & Terima Kasih.",
+      "Bertutur kata halus, santun, dan menghargai lawan bicara.",
+      "Sangat sopan, memuliakan orang tua/ muda secara natural."
+    ]
+  },
+  {
+    key: "adab_3", 
+    label: "3. Disiplin & Tanggung Jawab",
+    items: [
+      "Sering terlambat, melalaikan tugas, dan melanggar aturan.",
+      "Kurang disiplin waktu dan hasil pengerjaan tugas asal-asalan.",
+      "Hadir tepat waktu dan menyelesaikan tugas sesuai standar saja.",
+      "Selalu disiplin waktu, taat aturan, dan tugas selesai dengan rapi.",
+      "Sangat disiplin, hasil kerja memuaskan, dan proaktif tanpa diawasi."
+    ]
+  },
+  {
+    key: "adab_4", 
+    label: "4. Empati & Kepedulian",
+    items: [
+      "Egois, tidak peduli, dan cenderung merugikan orang lain.",
+      "Bersikap masa bodoh (apatis) terhadap kesulitan teman/lingkungan.",
+      "Mau membantu orang lain atau menjaga kebersihan jika diminta.",
+      "Peka terhadap situasi sekitar dan ringan tangan membantu.",
+      "Sangat peduli, inisiatif tinggi, dan penggerak kebaikan bersama."
+    ]
+  }
+];
+
 // --- 1. MODAL TAMBAH / EDIT HAFALAN ---
 export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan }) => {
   const initialForm = {
@@ -223,7 +272,8 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
     ayat: "", 
     jenis_setoran: "", 
     nilai: "", 
-    catatan: ""
+    catatan: "",
+    adab_1: 0, adab_2: 0, adab_3: 0, adab_4: 0 // Field Adab Baru
   };
   
   const [form, setForm] = useState(initialForm);
@@ -325,6 +375,31 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
     }
   };
 
+  // Handler Checkbox Adab (Skala 1-5)
+  const handleCheckAdab = (key, poin) => {
+    setForm(prev => ({ ...prev, [key]: poin }));
+  };
+
+  // Handler Simpan dengan Trigger WA
+  const submitAction = (triggerWa) => {
+    // Validasi Adab Wajib Diisi
+    if (form.adab_1 === 0 || form.adab_2 === 0 || form.adab_3 === 0 || form.adab_4 === 0) {
+      return alert("Mohon lengkapi seluruh Penilaian Adab & Karakter!");
+    }
+
+    const s = siswaList.find(i => String(i.value) === String(form.siswa));
+    const m = guruList.find(i => String(i.value) === String(form.guru));
+    
+    const { selected_kelas, ...cleanForm } = form;
+
+    onSave({
+        ...cleanForm,
+        trigger_wa: triggerWa, // Flag untuk backend
+        _displaySiswa: s ? s.label : "-",
+        _displayGuru: m ? m.label : "-"
+    });
+  };
+
   const handleSaveClick = () => {
     const s = siswaList.find(i => String(i.value) === String(form.siswa));
     const m = guruList.find(i => String(i.value) === String(form.guru));
@@ -385,7 +460,7 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ModalInput label="Ayat" name="ayat" placeholder="Contoh: 1-10" value={form.ayat} onChange={handleChange} />
-            <ModalInput label="Jenis Setoran" name="jenis_setoran" type="select" options={[{value:"", label:"-- Pilih Jenis --"}, {value:"Ziyadah", label:"Ziyadah(Hafalan Baru)"}, {value:"Murajaah", label:"Murajaah(Mengulang"}]} value={form.jenis_setoran} onChange={handleChange} />
+            <ModalInput label="Jenis Setoran" name="jenis_setoran" type="select" options={[{value:"", label:"-- Pilih Jenis --"}, {value:"Ziyadah(Hafalan Baru", label:"Ziyadah(Hafalan Baru)"}, {value:"Murajaah(Mengulang)", label:"Murajaah(Mengulang"}]} value={form.jenis_setoran} onChange={handleChange} />
             <ModalInput label="Nilai" name="nilai" type="select" options={[{value:"", label:"-- Pilih Nilai --"}, {value:"A", label:"A - Sangat Baik"}, {value:"B", label:"B - Baik"}, {value:"C", label:"C - Cukup"}, {value:"D", label:"D - Kurang"}]} value={form.nilai} onChange={handleChange} />
         </div>
         
@@ -394,10 +469,51 @@ export const FormHafalanModal = ({ mode = "add", onClose, onSave, dataHafalan })
           <textarea name="catatan" className="w-full bg-[#D9D9D9] border-none rounded-[4px] px-4 py-3 font-[500] h-[100px] outline-none resize-none placeholder-slate-500 text-slate-800" value={form.catatan} onChange={handleChange} placeholder="Masukkan Catatan ..."></textarea>
         </div>
 
+        <div className="pt-4 mt-6 border-t border-slate-300">
+          <h5 className="font-bold text-slate-800 mb-4 text-base">Penilaian Adab & Karakter</h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            {ADAB_LIST.map((bab) => (
+              <div key={bab.key} className="space-y-3">
+                <p className="font-bold text-[0.9rem] text-slate-800">{bab.label}</p>
+                {bab.items.map((txt, idx) => (
+                  <label key={idx} className="flex items-start gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      className="mt-1 w-5 h-5 rounded border-slate-300 text-[#1B4332] focus:ring-[#1B4332] cursor-pointer"
+                      checked={form[bab.key] === (idx + 1)}
+                      onChange={() => handleCheckAdab(bab.key, idx + 1)}
+                    />
+                    <span className={`text-[0.8rem] leading-tight transition-colors ${form[bab.key] === (idx + 1) ? 'font-bold text-black' : 'text-slate-600 group-hover:text-black'}`}>{txt}</span>
+                  </label>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <hr className="border-t border-black my-6 -mx-6 opacity-100" />
-        <div className="flex flex-row justify-end gap-3">
-          <button onClick={() => setForm({ ...initialForm })} className="bg-[#E53E3E] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-red-700 transition-colors"><BiTrash /> Reset</button>
-          <button onClick={handleSaveClick} className="bg-[#5294A9] text-white rounded-[4px] px-6 py-2 font-[700] flex items-center gap-2 hover:bg-[#417688] transition-colors"><BiSave /> Simpan</button>
+        <div className="pt-4 mt-2 border-t border-slate-100">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            {/* Tombol Reset */}
+            <button 
+              onClick={() => setForm({ ...initialForm })} 
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#E53E3E] text-white font-bold text-sm flex justify-center items-center gap-2 hover:bg-[#9c0707] shadow-sm transition-all active:scale-95"
+            >
+              <BiTrash className="text-lg" /> Reset
+            </button>
+            <button 
+              onClick={() => submitAction(false)} 
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#5294A9] text-white font-bold text-sm flex justify-center items-center gap-2 hover:bg-[#3e7283] shadow-sm transition-all active:scale-95"
+            >
+              <BiSave className="text-lg" /> Simpan
+            </button>
+            <button 
+              onClick={() => submitAction(true)} 
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#29614a] text-white font-bold text-sm flex justify-center items-center gap-2 hover:bg-[#143d2b] shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
+            >
+              <BiLogoWhatsapp className="text-xl" /> Simpan & Kirim WA
+            </button>
+          </div>
         </div>
       </div>
     </ModalWrapper>
@@ -441,6 +557,9 @@ export const ConfirmModal = ({ type = "save", onClose, onConfirm, dataHafalan })
   // PERBAIKAN: titleColor yang sebelumnya bikin crash
   const titleColor = isDelete ? "text-[#DC3545]" : "text-[#007BFF]";
 
+  // Deteksi jika user memilih "Simpan & Kirim WA"
+  const isSendWa = dataHafalan?.trigger_wa;
+
   return (
     <div className="fixed inset-0 bg-black/50 z-[1080] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
       <div className="bg-white rounded-[15px] w-full max-w-[450px] p-6 md:p-8 text-center shadow-2xl animate-[zoomIn_0.3s_ease-out] overflow-y-auto max-h-[90vh]">
@@ -452,8 +571,12 @@ export const ConfirmModal = ({ type = "save", onClose, onConfirm, dataHafalan })
           <div className="bg-slate-50 p-4 rounded-lg text-left mx-auto mb-8 border border-slate-200 text-sm w-full">
             <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Nama Siswa</span><span>: {dataHafalan._displaySiswa || dataHafalan.nama_siswa || "-"}</span></div>
             <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Surah</span><span>: {dataHafalan.surah}</span></div>
-            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Guru</span><span>: {dataHafalan._displayGuru || dataHafalan.nama_guru || "-"}</span></div>
-            <div className="flex"><span className="w-[100px] font-bold text-slate-700 shrink-0">Juz</span><span>: {dataHafalan.juz}</span></div>
+            <div className="flex mb-2"><span className="w-[100px] font-bold text-slate-700 shrink-0">Juz</span><span>: {dataHafalan.juz}</span></div>
+            {isSendWa && (
+                <div className="mt-2 pt-2 border-t border-slate-200 text-[#1B4332] font-bold flex items-center gap-2">
+                    <BiLogoWhatsapp className="text-lg" /> Laporan WA akan dikirim!
+                </div>
+            )}
           </div>
         )}
         

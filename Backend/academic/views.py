@@ -29,6 +29,29 @@ from wa_gateway.models import WATemplate, WAMessageLog
 
 User = get_user_model()
 
+def calculate_adab_score(instance):
+    total_poin = instance.adab_1 + instance.adab_2 + instance.adab_3 + instance.adab_4
+    skor_akhir = (total_poin / 20) * 100
+    
+    if skor_akhir >= 91:
+        predikat = "Sangat Baik (A)"
+        deskripsi = "Menjadi Teladan. Konsisten menunjukkan adab yang luhur."
+    elif skor_akhir >= 76:
+        predikat = "Baik (B)"
+        deskripsi = "Membudaya. Sering menunjukkan perilaku positif."
+    elif skor_akhir >= 60:
+        predikat = "Cukup (C)"
+        deskripsi = "Mulai Terlihat. Perilaku baik muncul jika ada aturan."
+    else:
+        predikat = "Kurang (D)"
+        deskripsi = "Perlu Bimbingan. Sering melanggar norma."
+        
+    instance.skor_adab = int(skor_akhir)
+    instance.predikat_adab = predikat
+    instance.deskripsi_adab = deskripsi
+    # Update field hasil perhitungan saja
+    instance.save(update_fields=['skor_adab', 'predikat_adab', 'deskripsi_adab'])
+
 def send_auto_wa(instance):
     """
     LOGIKA: Mengirim laporan hafalan otomatis menggunakan template
@@ -43,8 +66,10 @@ def send_auto_wa(instance):
         guru = instance.guru
         nomor_wa = siswa.phone_number
         
-        if not nomor_wa:
-            print(f"Skip: {siswa.first_name} tidak memiliki nomor WA.")
+        if not siswa.phone_number: 
+            # Jika tidak ada nomor, status failed
+            instance.wa_status = 'failed'
+            instance.save(update_fields=['wa_status'])
             return
 
         # 3. Proses Mapping Tag (Ganti [tag] dengan data asli)
@@ -58,7 +83,10 @@ def send_auto_wa(instance):
             "[ayat]": instance.ayat or "-",
             "[jenis]": instance.jenis_setoran,
             "[nilai]": instance.nilai,
-            "[catatan]": instance.catatan or "-"
+            "[catatan]": instance.catatan or "-",
+            "[skor_adab]": str(instance.skor_adab),          # Contoh: 80
+            "[predikat_adab]": instance.predikat_adab or "-", # Contoh: Baik (B)
+            "[ket_adab]": instance.deskripsi_adab or "-"
         }
 
         pesan_final = pesan_raw
@@ -84,10 +112,13 @@ def send_auto_wa(instance):
             status=status_wa
         )
         
-        # 6. Tandai wa_sent = True di database hafalan jika berhasil
-        if status_wa == 'terkirim':
-            instance.wa_sent = True
-            instance.save(update_fields=['wa_sent'])
+        # UPDATE STATUS BERDASARKAN HASIL REQUEST
+        if res.status_code == 200:
+            instance.wa_status = 'sent' # Terkirim
+        else:
+            instance.wa_status = 'failed' # Gagal Gateway
+            
+        instance.save(update_fields=['wa_status'])
             
     except WATemplate.DoesNotExist:
         print("Error: Template 'setor_hafalan' belum ada!")
@@ -145,12 +176,31 @@ class SetorHafalanViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['siswa__first_name', 'siswa__last_name', 'surah']
     def perform_create(self, serializer):
+        # 1. Simpan data (termasuk nilai adab 1-5 dari frontend karena serializer sudah diperbaiki)
         instance = serializer.save()
-        send_auto_wa(serializer.instance) # EKSEKUSI OTOMATIS SAAT SIMPAN
+        
+        # 2. Hitung Skor & Predikat
+        calculate_adab_score(instance)
+        
+        # 3. PERBAIKAN LOGIC WA: Hanya kirim jika tombol "Simpan & Kirim WA" diklik
+        trigger_wa = self.request.data.get('trigger_wa')
+        
+        # Pastikan trigger_wa dibaca sebagai boolean (terkadang dikirim sebagai string "true"/"false")
+        should_send = str(trigger_wa).lower() == 'true' if trigger_wa else False
+
+        if should_send:
+            send_auto_wa(instance)
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        send_auto_wa(serializer.instance) # KIRIM ULANG SAAT EDIT (OPSIONAL)
+        calculate_adab_score(instance)
+        
+        # PERBAIKAN LOGIC WA UNTUK EDIT
+        trigger_wa = self.request.data.get('trigger_wa')
+        should_send = str(trigger_wa).lower() == 'true' if trigger_wa else False
+
+        if should_send:
+            send_auto_wa(instance)
 
 # --- IMPORT EXCEL HAFALAN ---
 class HafalanImportExcelView(generics.CreateAPIView):
