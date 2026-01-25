@@ -21,7 +21,7 @@ const ManagementUserPage = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`http://127.0.0.1:8000/api/users/?search=${searchTerm}`, { 
+      const response = await axios.get(`https://api-risalah.mentariku.org/api/users/?search=${searchTerm}`, { 
         headers: { Authorization: `Bearer ${token}` } 
       });
       setUsers(response.data);
@@ -62,7 +62,7 @@ const ManagementUserPage = () => {
     try {
       const token = localStorage.getItem("token");
       const isEdit = activeModal === 'confirm-edit';
-      const url = isEdit ? `http://127.0.0.1:8000/api/users/${tempFormData.id}/` : "http://127.0.0.1:8000/api/users/";
+      const url = isEdit ? `https://api-risalah.mentariku.org/api/users/${tempFormData.id}/` : "https://api-risalah.mentariku.org/api/users/";
       const method = isEdit ? "patch" : "post";
       
       await axios[method](url, tempFormData, { headers: { Authorization: `Bearer ${token}` } });
@@ -80,7 +80,7 @@ const ManagementUserPage = () => {
   const handleFinalDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://127.0.0.1:8000/api/users/${selectedUser.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`https://api-risalah.mentariku.org/api/users/${selectedUser.id}/`, { headers: { Authorization: `Bearer ${token}` } });
       setActiveModal(null); fetchUsers();
     } catch (err) { alert("Gagal hapus."); }
   };

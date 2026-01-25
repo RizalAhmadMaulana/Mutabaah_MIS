@@ -17,7 +17,7 @@ const SettingProfilePage = () => {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const response = await axios.get("http://127.0.0.1:8000/api/profile/", {
+      const response = await axios.get("https://api-risalah.mentariku.org/api/profile/", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProfileData(response.data);

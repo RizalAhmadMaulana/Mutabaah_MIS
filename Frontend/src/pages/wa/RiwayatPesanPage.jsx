@@ -26,7 +26,7 @@ const RiwayatPesanPage = () => {
     setFetching(true);
     try {
       // Menggunakan query params 'search' untuk filter backend
-      const res = await axios.get(`http://127.0.0.1:8000/api/wa/logs/?search=${searchTerm}`, { headers });
+      const res = await axios.get(`https://api-risalah.mentariku.org/api/wa/logs/?search=${searchTerm}`, { headers });
       setLogs(res.data);
     } catch (err) { 
       console.error("Gagal load log WA", err); 
@@ -56,7 +56,7 @@ const RiwayatPesanPage = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus riwayat pesan ini?")) {
       try {
-        await axios.delete(`http://127.0.0.1:8000/api/wa/logs/${id}/`, { headers });
+        await axios.delete(`https://api-risalah.mentariku.org/api/wa/logs/${id}/`, { headers });
         setLogs(logs.filter(log => log.id !== id));
       } catch (err) { 
         alert("Gagal menghapus riwayat."); 
