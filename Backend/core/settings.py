@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-b2ieoqb^8h_m8cao0i2y^10+k6*%lz=9ukq1^bu0)orni@s5v^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['api-risalah.mentariku.org', 'risalah.mentariku.org']
+ALLOWED_HOSTS = ['api.risalah.mentariku.org', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -125,7 +125,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
