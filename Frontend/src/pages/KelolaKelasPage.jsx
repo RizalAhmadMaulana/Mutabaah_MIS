@@ -29,7 +29,7 @@ const KelolaKelasPage = () => {
   const fetchKelas = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`https://api-risalah.mentariku.org/api/academic/kelas/?search=${searchTerm}`, {
+      const response = await axios.get(`https://api.risalah.mentariku.org/api/academic/kelas/?search=${searchTerm}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setKelasData(response.data);
@@ -55,8 +55,8 @@ const KelolaKelasPage = () => {
       const token = localStorage.getItem("token");
       const isEdit = activeModal === 'confirm-edit';
       const url = isEdit 
-        ? `https://api-risalah.mentariku.org/api/academic/kelas/${tempFormData.id}/` 
-        : "https://api-risalah.mentariku.org/api/academic/kelas/";
+        ? `https://api.risalah.mentariku.org/api/academic/kelas/${tempFormData.id}/` 
+        : "https://api.risalah.mentariku.org/api/academic/kelas/";
       const method = isEdit ? "patch" : "post";
 
       await axios[method](url, tempFormData, {
@@ -81,7 +81,7 @@ const KelolaKelasPage = () => {
   const handleFinalDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://api-risalah.mentariku.org/api/academic/kelas/${selectedKelas.id}/`, {
+      await axios.delete(`https://api.risalah.mentariku.org/api/academic/kelas/${selectedKelas.id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveModal(null);

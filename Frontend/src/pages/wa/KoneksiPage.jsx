@@ -16,7 +16,7 @@ import {
   BiHash
 } from "react-icons/bi";
 
-const SOCKET_URL = "http://localhost:6969";
+const SOCKET_URL = "https://wa.risalah.mentariku.org"; //"http://localhost:6969"
 
 const KoneksiPage = () => {
   const [sessions, setSessions] = useState([]);

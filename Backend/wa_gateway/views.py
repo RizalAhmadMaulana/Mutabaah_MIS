@@ -34,7 +34,7 @@ class SendMessageView(APIView):
         payload = {"sender": "admin_mis", "number": number, "message": message}
         try:
             # Gunakan json=payload agar konsisten
-            res = requests.post("http://localhost:6969/send-message", json=payload, timeout=10)
+            res = requests.post("https://wa.risalah.mentariku.org/send-message", json=payload, timeout=10)
             status_wa = 'terkirim' if res.status_code == 200 else 'gagal'
             WAMessageLog.objects.create(
                 nama_siswa=nama_siswa,
@@ -84,7 +84,7 @@ class BroadcastView(APIView):
 
                 try:
                     # Timeouts ditingkatkan karena upload Base64 butuh waktu lebih
-                    res = requests.post("http://localhost:6969/send-message", json=payload, timeout=40)
+                    res = requests.post("https://wa.risalah.mentariku.org/send-message", json=payload, timeout=40)
                     
                     if res.status_code == 200: success += 1
                     else: failed += 1

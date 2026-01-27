@@ -27,7 +27,7 @@ const DataGuruPage = () => {
   const fetchGurus = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`https://api-risalah.mentariku.org/api/guru/?search=${searchTerm}`, {
+      const response = await axios.get(`https://api.risalah.mentariku.org/api/guru/?search=${searchTerm}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setGurus(response.data);
@@ -66,8 +66,8 @@ const DataGuruPage = () => {
       const token = localStorage.getItem("token");
       const isEdit = activeModal === 'confirm-edit';
       const url = isEdit 
-        ? `https://api-risalah.mentariku.org/api/guru/${tempFormData.id}/` 
-        : "https://api-risalah.mentariku.org/api/guru/";
+        ? `https://api.risalah.mentariku.org/api/guru/${tempFormData.id}/` 
+        : "https://api.risalah.mentariku.org/api/guru/";
       const method = isEdit ? "patch" : "post";
 
       await axios[method](url, tempFormData, {
@@ -92,7 +92,7 @@ const DataGuruPage = () => {
   const handleFinalDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://api-risalah.mentariku.org/api/guru/${selectedGuru.id}/`, {
+      await axios.delete(`https://api.risalah.mentariku.org/api/guru/${selectedGuru.id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveModal(null);

@@ -79,7 +79,7 @@ export const FormSiswaModal = ({ mode = "add", onClose, onSave, userData }) => {
     const fetchKelas = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("https://api-risalah.mentariku.org/api/academic/kelas/", {
+        const res = await axios.get("https://api.risalah.mentariku.org/api/academic/kelas/", {
           headers: { Authorization: `Bearer ${token}` }
         });
         // Format data agar sesuai struktur dropdown {value, label}
@@ -163,7 +163,7 @@ export const ImportExcelModal = ({ onClose, onSuccess }) => {
     
     try {
       const token = localStorage.getItem("token");
-      await axios.post("https://api-risalah.mentariku.org/api/siswa/import/", formData, {
+      await axios.post("https://api.risalah.mentariku.org/api/siswa/import/", formData, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
       });
       alert("Import Data Siswa Berhasil!");

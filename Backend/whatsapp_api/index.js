@@ -15,7 +15,10 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: [
+        "http://localhost:5173",              // Izin untuk Laptop
+        "https://risalah.mentariku.org"       // Izin untuk Website Production
+    ],
     methods: ["GET", "POST"]
   }
 })
@@ -88,7 +91,8 @@ const createSession = async function (id, description) {
             remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
         },
         puppeteer: {
-       	 headless: true,
+       	 headless: true, //false, 
+         //executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
        	 args: [
            	 '--no-sandbox',
            	 '--disable-setuid-sandbox',

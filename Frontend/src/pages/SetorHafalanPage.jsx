@@ -20,7 +20,7 @@ const SetorHafalanPage = () => {
   const fetchHafalan = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`https://api-risalah.mentariku.org/api/academic/hafalan/?search=${searchTerm}`, {
+      const response = await axios.get(`https://api.risalah.mentariku.org/api/academic/hafalan/?search=${searchTerm}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHafalanData(response.data);
@@ -59,8 +59,8 @@ const SetorHafalanPage = () => {
       const token = localStorage.getItem("token");
       const isEdit = activeModal === 'confirm-edit';
       const url = isEdit 
-        ? `https://api-risalah.mentariku.org/api/academic/hafalan/${tempFormData.id}/` 
-        : "https://api-risalah.mentariku.org/api/academic/hafalan/";
+        ? `https://api.risalah.mentariku.org/api/academic/hafalan/${tempFormData.id}/` 
+        : "https://api.risalah.mentariku.org/api/academic/hafalan/";
       const method = isEdit ? "patch" : "post";
 
       await axios[method](url, tempFormData, {
@@ -85,7 +85,7 @@ const SetorHafalanPage = () => {
   const handleFinalDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://api-risalah.mentariku.org/api/academic/hafalan/${selectedHafalan.id}/`, {
+      await axios.delete(`https://api.risalah.mentariku.org/api/academic/hafalan/${selectedHafalan.id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setActiveModal(null);

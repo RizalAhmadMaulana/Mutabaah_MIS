@@ -101,7 +101,7 @@ def send_auto_wa(instance):
         }
         
         # Endpoint sesuai instruksi gateway
-        res = requests.post("http://localhost:6969/send-message", json=payload, timeout=10)
+        res = requests.post("https://wa.risalah.mentariku.org/send-message", json=payload, timeout=10)
         
         # 5. Catat Log ke database Django
         status_wa = 'terkirim' if res.status_code == 200 else 'gagal'

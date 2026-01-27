@@ -20,7 +20,7 @@ const LoginPage = () => {
     setError("");
 
     try {
-      const response = await axios.post("https://api-risalah.mentariku.org/api/login/", {
+      const response = await axios.post("https://api.risalah.mentariku.org/api/login/", {
         username: username,
         password: password
       });

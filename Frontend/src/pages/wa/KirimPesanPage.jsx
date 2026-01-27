@@ -31,7 +31,7 @@ const KirimPesanPage = () => {
   const [mediaFile, setMediaFile] = useState(null); // State Media Opsional
 
   useEffect(() => {
-    axios.get("https://api-risalah.mentariku.org/api/academic/kelas/", { headers })
+    axios.get("https://api.risalah.mentariku.org/api/academic/kelas/", { headers })
       .then(res => setKelasList(res.data))
       .catch(err => console.error("Gagal ambil kelas:", err));
   }, []);
@@ -40,7 +40,7 @@ const KirimPesanPage = () => {
     if (personalKelas && personalKelas !== "") {
       setFetchingSiswa(true);
       setSelectedSiswa("");
-      axios.get(`https://api-risalah.mentariku.org/api/siswa/?kelas=${personalKelas}`, { headers })
+      axios.get(`https://api.risalah.mentariku.org/api/siswa/?kelas=${personalKelas}`, { headers })
         .then(res => {
           setPersonalSiswaList(res.data);
           setFetchingSiswa(false);
@@ -63,7 +63,7 @@ const KirimPesanPage = () => {
 
     setPersonalLoading(true);
     try {
-      await axios.post("https://api-risalah.mentariku.org/api/wa/send-message/", {
+      await axios.post("https://api.risalah.mentariku.org/api/wa/send-message/", {
         number: siswaObj.phone_number,
         message: personalMessage,
         nama_siswa: `${siswaObj.first_name} ${siswaObj.last_name}`
@@ -89,7 +89,7 @@ const KirimPesanPage = () => {
     }
 
     try {
-      await axios.post("https://api-risalah.mentariku.org/api/wa/broadcast/", formData, { 
+      await axios.post("https://api.risalah.mentariku.org/api/wa/broadcast/", formData, { 
         headers: { 
             ...headers,
             'Content-Type': 'multipart/form-data' 

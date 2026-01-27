@@ -38,7 +38,7 @@ npm start
 ```
 
 Aplikasi akan berjalan di port **6969** secara default.  
-Buka browser dan akses: [http://localhost:6969](http://localhost:6969)
+Buka browser dan akses: [https://wa.risalah.mentariku.org](https://wa.risalah.mentariku.org)
 
 > **Catatan:**  
 > - Untuk port/host custom, gunakan environment variable `PORT` dan `HOST`.
@@ -50,12 +50,12 @@ Buka browser dan akses: [http://localhost:6969](http://localhost:6969)
 
 ### 1. **Buka Dashboard**
 
-Akses [http://localhost:6969](http://localhost:6969)  
+Akses [https://wa.risalah.mentariku.org](https://wa.risalah.mentariku.org)  
 Buat sesi baru dengan ID unik, lalu scan QR menggunakan WhatsApp Anda.
 
 ### 2. **Broadcast Pesan (Dengan Delay Custom)**
 
-Akses menu **Broadcast** di [http://localhost:6969/broadcast](http://localhost:6969/broadcast)
+Akses menu **Broadcast** di [https://wa.risalah.mentariku.org/broadcast](https://wa.risalah.mentariku.org/broadcast)
 
 - Masukkan ID Sender (sesi WhatsApp)
 - Masukkan daftar nomor (pisahkan dengan koma)
@@ -91,7 +91,7 @@ Content-Type: application/json
   "sender": "id_session",
   "number": "6281234567890",
   "caption": "Ini gambar",
-  "file": "http://localhost:6969/assets/uploads/namafile.jpg"
+  "file": "https://wa.risalah.mentariku.org/assets/uploads/namafile.jpg"
 }
 ```
 
@@ -105,7 +105,7 @@ Content-Type: application/json
   "sender": "id_session",
   "numbers": "6281234567890,6289876543210",
   "message": "Promo spesial hari ini!",
-  "file": "http://localhost:6969/assets/uploads/namafile.jpg", // opsional
+  "file": "https://wa.risalah.mentariku.org/assets/uploads/namafile.jpg", // opsional
   "delay": 30 // delay antar pesan dalam detik
 }
 ```
@@ -120,7 +120,7 @@ file: [pilih file]
 ```
 Response:  
 ```json
-{ "status": true, "url": "http://localhost:6969/assets/uploads/namafile.jpg" }
+{ "status": true, "url": "https://wa.risalah.mentariku.org/assets/uploads/namafile.jpg" }
 ```
 
 ---

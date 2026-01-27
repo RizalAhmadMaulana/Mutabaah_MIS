@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-b2ieoqb^8h_m8cao0i2y^10+k6*%lz=9ukq1^bu0)orni@s5v^'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True #False
 
 ALLOWED_HOSTS = ['api.risalah.mentariku.org', 'localhost', '127.0.0.1']
 
